@@ -195,6 +195,23 @@
   .letter-tile.correct{ background:linear-gradient(180deg,#8FE0A8,#5FCB80) !important; }
   .letter-tile.shake{ animation:shakeBtn .45s ease; }
 
+  /* ---------- COLOR SEARCH MODE ---------- */
+  .color-target-badge{
+    display:none; flex-shrink:0;
+    width:min(18vw,82px); height:min(18vw,82px); border-radius:50%;
+    border:6px solid #fff; box-shadow:0 8px 0 rgba(0,0,0,.12);
+    animation:badgePulse 1.6s ease-in-out infinite;
+  }
+  .color-tile{
+    position:absolute; transform:translate(-50%,-50%);
+    width:min(20vw,92px); height:min(20vw,92px); border-radius:50%;
+    border:6px solid rgba(255,255,255,.85);
+    box-shadow:0 8px 0 rgba(0,0,0,.15); cursor:pointer; touch-action:manipulation;
+    animation:itemPop .35s ease both;
+  }
+  .color-tile.correct{ box-shadow:0 0 0 6px #5FCB80, 0 8px 0 rgba(0,0,0,.15); }
+  .color-tile.shake{ animation:shakeBtn .45s ease; }
+
   /* ---------- LANGUAGE SUB-MENU ---------- */
   .lang-cards{ display:flex; gap:min(4vw,28px); flex-wrap:wrap; justify-content:center; margin-top:6px; }
   .lang-card{
@@ -237,6 +254,7 @@
   .mode-card.feed{ border-color:#FFD9B0; }
   .mode-card.count{ border-color:#BEE9FF; }
   .mode-card.letter{ border-color:#D6F5D0; }
+  .mode-card.color{ border-color:#FFD9F0; }
 
   .big-btn{
     font-family:inherit; font-weight:800; font-size:clamp(22px,4.4vw,32px);
@@ -280,6 +298,7 @@
       <span id="badgeIcon">🍖</span><span class="num-fed" id="fedCountEl">0</span> / <span class="num-target" id="targetCountEl">3</span>
     </div>
     <div class="letter-target-badge" id="letterTargetBadge">ก</div>
+    <div class="color-target-badge" id="colorTargetBadge"></div>
     <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
   </div>
 
@@ -333,6 +352,11 @@
   <div class="count-stage" id="letterStage" style="display:none;">
     <div class="count-objects" id="letterObjects"></div>
   </div>
+
+  <!-- ============ FIND THE COLOR MODE ============ -->
+  <div class="count-stage" id="colorStage" style="display:none;">
+    <div class="count-objects" id="colorObjects"></div>
+  </div>
 </div>
 
 <!-- MENU / START OVERLAY -->
@@ -354,6 +378,11 @@
       <span class="icon">🔤</span>
       <span class="title">ค้นหาตัวอักษร</span>
       <span class="desc">ตามหาตัวอักษรที่กำหนด</span>
+    </button>
+    <button class="mode-card color" id="colorModeBtn">
+      <span class="icon">🎨</span>
+      <span class="title">หาสี</span>
+      <span class="desc">ตามหาสีที่กำหนดให้เจอ</span>
     </button>
   </div>
 </div>
@@ -442,8 +471,9 @@
   var shelfWrap = document.getElementById('shelfWrap');
   var countStage = document.getElementById('countStage');
   var letterStage = document.getElementById('letterStage');
+  var colorStage = document.getElementById('colorStage');
 
-  var currentMode = null; // 'feed' | 'count' | 'letter'
+  var currentMode = null; // 'feed' | 'count' | 'letter' | 'color'
 
   function say(text){
     instructionText.textContent = text;
@@ -789,6 +819,66 @@
     say('ตามหาตัวอักษร ' + targetLetterObj.read + ' ให้เจอ!');
   }
 
+  /* =====================================================
+     FIND THE COLOR MODE
+  ===================================================== */
+  var COLORS = [
+    {name:'แดง', hex:'#FF5A5A'},
+    {name:'เหลือง', hex:'#FFD93D'},
+    {name:'เขียว', hex:'#6BCB77'},
+    {name:'น้ำเงิน', hex:'#4D96FF'},
+    {name:'ส้ม', hex:'#FF9F45'},
+    {name:'ม่วง', hex:'#B98CE0'},
+    {name:'ชมพู', hex:'#FF8FB1'},
+    {name:'ฟ้า', hex:'#63D2FF'},
+    {name:'น้ำตาล', hex:'#B08463'},
+    {name:'ดำ', hex:'#4A4A4A'}
+  ];
+
+  var targetColorObj = null;
+  var colorObjects = document.getElementById('colorObjects');
+  var colorTargetBadge = document.getElementById('colorTargetBadge');
+
+  function buildColorTiles(){
+    colorObjects.innerHTML = '';
+    var shuffledPool = shuffle(COLORS);
+    var tileCount = Math.min(6, COLORS.length);
+    var tiles = shuffle(shuffledPool.slice(0, tileCount));
+    targetColorObj = shuffledPool[0];
+    var slots = shuffle(SLOTS).slice(0, tiles.length);
+
+    tiles.forEach(function(colorObj, i){
+      var pos = slots[i] || SLOTS[i % SLOTS.length];
+      var tile = document.createElement('div');
+      tile.className = 'color-tile';
+      tile.style.left = pos[0] + '%';
+      tile.style.top = pos[1] + '%';
+      tile.style.background = colorObj.hex;
+      tile.style.animationDelay = (i * 0.06) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(tile.classList.contains('correct')) return;
+        if(colorObj.name === targetColorObj.name){
+          tile.classList.add('correct');
+          playPop();
+          setTimeout(winLevel, 350);
+        }else{
+          tile.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ tile.classList.remove('shake'); }, 500);
+        }
+      });
+      colorObjects.appendChild(tile);
+    });
+  }
+
+  function startColorLevel(){
+    buildColorTiles();
+    say('หาสี' + targetColorObj.name + 'ให้เจอ!');
+  }
+
   /* ================= MODE SWITCHING ================= */
   var counterBadge = document.getElementById('counterBadge');
   var langOverlay = document.getElementById('langOverlay');
@@ -798,8 +888,10 @@
     shelfWrap.style.display = 'none';
     countStage.style.display = 'none';
     letterStage.style.display = 'none';
+    colorStage.style.display = 'none';
     counterBadge.style.display = 'flex';
     letterTargetBadge.style.display = 'none';
+    colorTargetBadge.style.display = 'none';
   }
 
   function showMenu(){
@@ -842,11 +934,24 @@
     startLetterLevel();
   }
 
+  function enterColorMode(){
+    currentMode = 'color';
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    colorStage.style.display = 'flex';
+    counterBadge.style.display = 'none';
+    startColorLevel();
+  }
+
   document.getElementById('feedModeBtn').addEventListener('click', function(){
     unlockAudio(); enterFeedMode(); playPop();
   });
   document.getElementById('countModeBtn').addEventListener('click', function(){
     unlockAudio(); enterCountMode(); playPop();
+  });
+  document.getElementById('colorModeBtn').addEventListener('click', function(){
+    unlockAudio(); enterColorMode(); playPop();
   });
   document.getElementById('letterModeBtn').addEventListener('click', function(){
     unlockAudio(); playPop();
@@ -871,6 +976,7 @@
     if(currentMode === 'feed'){ startFeedLevel(); }
     else if(currentMode === 'count'){ startCountLevel(); }
     else if(currentMode === 'letter'){ startLetterLevel(); }
+    else if(currentMode === 'color'){ startColorLevel(); }
   });
   document.getElementById('replayBtn').addEventListener('click', function(){
     if(lastSentence) speak(lastSentence);
@@ -885,4 +991,3 @@
 </script>
 </body>
 </html>
-
