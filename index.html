@@ -1,1 +1,888 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>เลี้ยงสัตว์แสนสนุก & นับเลข 🐶🔢</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --sky-top:#FFF3D6;
+    --sky-bottom:#FFD9E8;
+    --grass-1:#BFF0D2;
+    --grass-2:#9FE4B8;
+    --panel:#FFFFFF;
+    --panel-border:#FFE1EE;
+    --text-main:#5B5470;
+    --purple:#8C7CF0;
+    --purple-dark:#6E5CE0;
+    --pink:#FF9EBB;
+    --yellow:#FFC65C;
+    --teal:#5CD3C0;
+    --dog-body:#FBE3B8;
+    --dog-body-dark:#F3C685;
+    --dog-ear:#EFA85F;
+    --dog-nose:#5C4032;
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    overflow:hidden;
+    touch-action:none;
+    overscroll-behavior:none;
+    -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
+    font-family:'Mali','Kanit',sans-serif;
+    color:var(--text-main);
+  }
+
+  body{
+    background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-bottom) 65%, var(--sky-bottom) 100%);
+    position:relative;
+  }
+
+  #game{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+
+  /* ---------- GROUND ---------- */
+  .ground{
+    position:absolute; left:0; right:0; bottom:0; height:34%;
+    background:linear-gradient(180deg,var(--grass-1),var(--grass-2));
+    border-top-left-radius:50% 40px; border-top-right-radius:50% 40px;
+    box-shadow: 0 -4px 0 rgba(255,255,255,.4) inset;
+  }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{
+    width:100%; display:flex; justify-content:center; align-items:center;
+    padding:14px 12px 4px; gap:12px; position:relative; z-index:5;
+  }
+  .home-btn, .replay-btn{
+    width:52px; height:52px; border-radius:50%; border:4px solid var(--panel-border);
+    background:var(--panel); font-size:24px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 0 rgba(0,0,0,.06); cursor:pointer; flex-shrink:0;
+  }
+  .home-btn:active, .replay-btn:active{ transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.06); }
+  .counter-badge{
+    background:var(--panel); border:4px solid var(--panel-border);
+    border-radius:30px; padding:10px 22px; font-size:clamp(22px,4vw,34px);
+    font-weight:800; box-shadow:0 6px 0 rgba(0,0,0,.06);
+    display:flex; align-items:center; gap:10px; white-space:nowrap;
+  }
+  .counter-badge .num-fed{ color:var(--purple-dark); }
+  .counter-badge .num-target{ color:var(--pink); }
+
+  /* ---------- SPEECH BUBBLE ---------- */
+  .speech-bubble{
+    margin-top:10px; max-width:92vw; background:var(--panel);
+    border:4px solid var(--panel-border); border-radius:28px;
+    padding:14px 26px; font-size:clamp(19px,3.4vw,28px); font-weight:700;
+    text-align:center; box-shadow:0 6px 0 rgba(0,0,0,.06); position:relative; z-index:5;
+  }
+  .speech-bubble::after{
+    content:""; position:absolute; left:50%; bottom:-16px; transform:translateX(-50%);
+    border-width:16px 14px 0 14px; border-style:solid;
+    border-color:var(--panel-border) transparent transparent transparent;
+  }
+
+  /* ---------- PET AREA (feed mode) ---------- */
+  .pet-stage{
+    flex:1; width:100%; display:flex; align-items:center; justify-content:center;
+    position:relative; min-height:0;
+  }
+  .pet-wrap{
+    position:relative; width:min(52vw,340px); animation:idleBob 3.2s ease-in-out infinite;
+  }
+  @keyframes idleBob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-8px) } }
+
+  .pet-svg{ width:100%; height:auto; display:block; overflow:visible; }
+
+  #mouthClosed{ opacity:1; transition:opacity .12s; }
+  #mouthOpen{ opacity:0; transition:opacity .12s; transform-origin:170px 205px; }
+  .pet.mouth-open #mouthClosed{ opacity:0; }
+  .pet.mouth-open #mouthOpen{ opacity:1; }
+  .pet.chew #mouthOpen{ animation:chomp .28s ease-in-out 2; }
+  @keyframes chomp{ 0%,100%{ transform:scaleY(1) } 50%{ transform:scaleY(.55) } }
+
+  .eye{ animation:blink 4.6s ease-in-out infinite; transform-origin:center; }
+  .eye.right{ animation-delay:.15s; }
+  @keyframes blink{ 0%,92%,100%{ transform:scaleY(1) } 96%{ transform:scaleY(.1) } }
+
+  .tail{ animation:wag 0.7s ease-in-out infinite; transform-origin:225px 210px; }
+  @keyframes wag{ 0%,100%{ transform:rotate(-8deg) } 50%{ transform:rotate(14deg) } }
+
+  .mouth-target{ position:absolute; left:50%; top:60%; width:70px; height:50px; transform:translate(-50%,-50%); pointer-events:none; }
+
+  /* ---------- SHELF / FOOD (feed mode) ---------- */
+  .shelf-wrap{ width:100%; position:relative; z-index:6; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
+  .shelf{
+    display:flex; justify-content:center; align-items:flex-end; gap:min(3.2vw,22px);
+    flex-wrap:wrap; padding:10px 10px 0;
+  }
+  .food{
+    width:min(20vw,92px); height:min(20vw,92px); touch-action:none; cursor:grab;
+    filter:drop-shadow(0 6px 4px rgba(0,0,0,.12));
+    will-change:transform;
+  }
+  .food.drag-active{ cursor:grabbing; z-index:999; filter:drop-shadow(0 14px 10px rgba(0,0,0,.22)); }
+  .food svg{ width:100%; height:100%; display:block; }
+  .food-pop{ animation:foodPop .35s ease; }
+  @keyframes foodPop{ from{ transform:scale(0) rotate(-15deg); opacity:0 } to{ transform:scale(1) rotate(0deg); opacity:1 } }
+
+  /* ---------- COUNT STAGE (count mode) ---------- */
+  .count-stage{
+    flex:1; width:100%; display:flex; flex-direction:column; min-height:0; position:relative;
+  }
+  .count-objects{
+    position:relative; flex:1; width:100%; min-height:0;
+  }
+  .count-item{
+    position:absolute; font-size:min(15vw,74px); line-height:1;
+    transform:translate(-50%,-50%);
+    filter:drop-shadow(0 6px 4px rgba(0,0,0,.15));
+    animation:itemPop .35s ease both; cursor:pointer; touch-action:manipulation;
+    user-select:none;
+  }
+  @keyframes itemPop{ from{ transform:translate(-50%,-50%) scale(0) rotate(-20deg); opacity:0 } to{ transform:translate(-50%,-50%) scale(1) rotate(0); opacity:1 } }
+  .count-item.counted{
+    animation:itemCounted .4s ease forwards;
+    pointer-events:none;
+  }
+  @keyframes itemCounted{
+    0%{ transform:translate(-50%,-50%) scale(1) }
+    40%{ transform:translate(-50%,-50%) scale(1.5) }
+    100%{ transform:translate(-50%,-50%) scale(1.15); filter:drop-shadow(0 0 14px #FFD65C) drop-shadow(0 6px 4px rgba(0,0,0,.15)); }
+  }
+
+  .answers-wrap{
+    display:flex; justify-content:center; align-items:center; gap:min(4vw,26px);
+    padding:12px 10px calc(18px + env(safe-area-inset-bottom));
+    min-height:110px;
+  }
+  .answer-btn{
+    width:min(22vw,100px); height:min(22vw,100px); border-radius:50%;
+    background:linear-gradient(180deg,#fff,#FFF7EE); border:5px solid var(--panel-border);
+    font-family:inherit; font-weight:800; font-size:clamp(30px,6vw,44px); color:var(--purple-dark);
+    box-shadow:0 8px 0 rgba(0,0,0,.08); cursor:pointer;
+    animation:foodPop .35s ease both;
+  }
+  .answer-btn:active{ transform:translateY(6px); box-shadow:0 2px 0 rgba(0,0,0,.08); }
+  .answer-btn.correct{ background:linear-gradient(180deg,#DFFAE6,#BFF0D2); border-color:#8FE0A8; }
+  .answer-btn.shake{ animation:shakeBtn .45s ease; }
+  @keyframes shakeBtn{ 0%,100%{ transform:translateX(0) } 20%{ transform:translateX(-10px) } 40%{ transform:translateX(10px) } 60%{ transform:translateX(-8px) } 80%{ transform:translateX(8px) } }
+
+  /* ---------- LETTER SEARCH MODE ---------- */
+  .letter-target-badge{
+    display:none; align-items:center; justify-content:center;
+    width:min(18vw,82px); height:min(18vw,82px); flex-shrink:0;
+    background:var(--panel); border:5px solid var(--panel-border); border-radius:26px;
+    font-size:clamp(30px,6vw,44px); font-weight:800; color:var(--purple-dark);
+    box-shadow:0 8px 0 rgba(0,0,0,.08); animation:badgePulse 1.6s ease-in-out infinite;
+  }
+  @keyframes badgePulse{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.08) } }
+
+  .letter-tile{
+    position:absolute; transform:translate(-50%,-50%);
+    width:min(20vw,92px); height:min(20vw,92px); border-radius:26px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(30px,7vw,46px); font-weight:800; color:#fff;
+    box-shadow:0 8px 0 rgba(0,0,0,.15); cursor:pointer; touch-action:manipulation;
+    animation:itemPop .35s ease both; user-select:none;
+  }
+  .letter-tile.correct{ background:linear-gradient(180deg,#8FE0A8,#5FCB80) !important; }
+  .letter-tile.shake{ animation:shakeBtn .45s ease; }
+
+  /* ---------- LANGUAGE SUB-MENU ---------- */
+  .lang-cards{ display:flex; gap:min(4vw,28px); flex-wrap:wrap; justify-content:center; margin-top:6px; }
+  .lang-card{
+    width:min(40vw,240px); background:var(--panel); border:5px solid var(--panel-border);
+    border-radius:32px; padding:22px 14px 24px; cursor:pointer;
+    box-shadow:0 10px 0 rgba(0,0,0,.07);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    font-family:inherit; color:var(--text-main);
+  }
+  .lang-card:active{ transform:translateY(8px); box-shadow:0 2px 0 rgba(0,0,0,.07); }
+  .lang-card .icon{ font-size:clamp(40px,8vw,60px); }
+  .lang-card .title{ font-size:clamp(18px,3.4vw,24px); font-weight:800; }
+  .back-link{
+    background:none; border:none; font-family:inherit; font-weight:700;
+    font-size:clamp(15px,2.6vw,19px); color:var(--purple-dark); cursor:pointer;
+    padding:8px 16px; opacity:.85;
+  }
+
+  /* ---------- MENU OVERLAY ---------- */
+  .overlay{
+    position:fixed; inset:0; z-index:50; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:22px; text-align:center; padding:20px;
+    background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom));
+  }
+  .overlay h1{ font-size:clamp(26px,5.6vw,44px); margin:0 0 4px; color:var(--purple-dark); text-shadow:0 3px 0 #fff; }
+  .overlay p{ font-size:clamp(17px,3.2vw,22px); margin:0; font-weight:600; }
+
+  .mode-cards{ display:flex; gap:min(4vw,28px); flex-wrap:wrap; justify-content:center; margin-top:6px; }
+  .mode-card{
+    width:min(40vw,240px); background:var(--panel); border:5px solid var(--panel-border);
+    border-radius:32px; padding:22px 14px 24px; cursor:pointer;
+    box-shadow:0 10px 0 rgba(0,0,0,.07);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    font-family:inherit; color:var(--text-main);
+  }
+  .mode-card:active{ transform:translateY(8px); box-shadow:0 2px 0 rgba(0,0,0,.07); }
+  .mode-card .icon{ font-size:clamp(46px,9vw,72px); }
+  .mode-card .title{ font-size:clamp(19px,3.6vw,26px); font-weight:800; }
+  .mode-card .desc{ font-size:clamp(13px,2.4vw,16px); font-weight:600; opacity:.75; }
+  .mode-card.feed{ border-color:#FFD9B0; }
+  .mode-card.count{ border-color:#BEE9FF; }
+  .mode-card.letter{ border-color:#D6F5D0; }
+
+  .big-btn{
+    font-family:inherit; font-weight:800; font-size:clamp(22px,4.4vw,32px);
+    color:#fff; background:linear-gradient(180deg,var(--purple),var(--purple-dark));
+    border:none; border-radius:40px; padding:20px 52px; box-shadow:0 8px 0 #5A49C4;
+    cursor:pointer; touch-action:manipulation;
+  }
+  .big-btn:active{ transform:translateY(6px); box-shadow:0 2px 0 #5A49C4; }
+
+  /* ---------- CELEBRATION ---------- */
+  .celebrate{
+    position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:18px; background:rgba(255,255,255,.35);
+  }
+  .celebrate.show{ display:flex; }
+  .celebrate h2{
+    font-size:clamp(34px,7vw,60px); color:var(--purple-dark); margin:0;
+    text-shadow:0 4px 0 #fff; animation:popIn .5s ease;
+  }
+  @keyframes popIn{ 0%{ transform:scale(0) rotate(-10deg) } 60%{ transform:scale(1.15) rotate(4deg) } 100%{ transform:scale(1) rotate(0) } }
+
+  .confetti{ position:fixed; top:-30px; z-index:59; border-radius:3px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(115vh) rotate(400deg); opacity:.9; } }
+
+  .star-burst{ position:fixed; z-index:40; pointer-events:none; font-size:26px; animation:starOut .6s ease forwards; }
+  @keyframes starOut{ 0%{ transform:translate(0,0) scale(.4); opacity:1 } 100%{ transform:translate(var(--tx),var(--ty)) scale(1.3); opacity:0 } }
+
+  @media (max-width:480px){
+    .shelf{ gap:14px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="counterBadge">
+      <span id="badgeIcon">🍖</span><span class="num-fed" id="fedCountEl">0</span> / <span class="num-target" id="targetCountEl">3</span>
+    </div>
+    <div class="letter-target-badge" id="letterTargetBadge">ก</div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">เลือกเกมที่อยากเล่นกันเถอะ!</div>
+
+  <!-- ============ FEED THE PET MODE ============ -->
+  <div class="pet-stage" id="feedStage">
+    <div class="pet-wrap">
+      <svg class="pet-svg pet" id="petSvg" viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg">
+        <ellipse class="tail" cx="235" cy="195" rx="16" ry="34" fill="var(--dog-body-dark)"/>
+        <ellipse cx="170" cy="255" rx="120" ry="70" fill="var(--dog-body)"/>
+        <ellipse cx="70" cy="110" rx="34" ry="52" fill="var(--dog-ear)" transform="rotate(-18 70 110)"/>
+        <ellipse cx="270" cy="110" rx="34" ry="52" fill="var(--dog-ear)" transform="rotate(18 270 110)"/>
+        <circle cx="170" cy="150" r="105" fill="var(--dog-body)"/>
+        <ellipse cx="115" cy="175" rx="38" ry="30" fill="var(--dog-body-dark)" opacity="0.55"/>
+        <ellipse cx="170" cy="195" rx="52" ry="38" fill="#FFF4E1"/>
+        <g class="eye left">
+          <circle cx="132" cy="140" r="13" fill="#4A3B33"/>
+          <circle cx="136" cy="135" r="4" fill="#fff"/>
+        </g>
+        <g class="eye right">
+          <circle cx="208" cy="140" r="13" fill="#4A3B33"/>
+          <circle cx="212" cy="135" r="4" fill="#fff"/>
+        </g>
+        <ellipse cx="108" cy="188" rx="14" ry="9" fill="#FF9EBB" opacity="0.55"/>
+        <ellipse cx="232" cy="188" rx="14" ry="9" fill="#FF9EBB" opacity="0.55"/>
+        <ellipse cx="170" cy="182" rx="14" ry="10" fill="var(--dog-nose)"/>
+        <g id="mouthClosed">
+          <path d="M 140 205 Q 170 222 200 205" stroke="#4A3B33" stroke-width="5" fill="none" stroke-linecap="round"/>
+        </g>
+        <g id="mouthOpen">
+          <ellipse cx="170" cy="208" rx="34" ry="26" fill="#8A3B4E"/>
+          <ellipse cx="170" cy="220" rx="22" ry="10" fill="#FF7C99"/>
+        </g>
+      </svg>
+      <div class="mouth-target" id="mouthTarget"></div>
+    </div>
+  </div>
+
+  <div class="shelf-wrap" id="shelfWrap">
+    <div class="shelf" id="shelf"></div>
+  </div>
+
+  <!-- ============ COUNT NUMBERS MODE ============ -->
+  <div class="count-stage" id="countStage" style="display:none;">
+    <div class="count-objects" id="countObjects"></div>
+    <div class="answers-wrap" id="answersWrap"></div>
+  </div>
+
+  <!-- ============ FIND THE LETTER MODE ============ -->
+  <div class="count-stage" id="letterStage" style="display:none;">
+    <div class="count-objects" id="letterObjects"></div>
+  </div>
+</div>
+
+<!-- MENU / START OVERLAY -->
+<div class="overlay" id="menuOverlay">
+  <h1>เลี้ยงสัตว์แสนสนุก 🐾</h1>
+  <p>เลือกเกมที่อยากเล่นได้เลย!</p>
+  <div class="mode-cards">
+    <button class="mode-card feed" id="feedModeBtn">
+      <span class="icon">🐶</span>
+      <span class="title">เลี้ยงหมา</span>
+      <span class="desc">ลากอาหารป้อนน้องหมา</span>
+    </button>
+    <button class="mode-card count" id="countModeBtn">
+      <span class="icon">🔢</span>
+      <span class="title">นับเลข</span>
+      <span class="desc">แตะนับของแล้วเลือกตัวเลข</span>
+    </button>
+    <button class="mode-card letter" id="letterModeBtn">
+      <span class="icon">🔤</span>
+      <span class="title">ค้นหาตัวอักษร</span>
+      <span class="desc">ตามหาตัวอักษรที่กำหนด</span>
+    </button>
+  </div>
+</div>
+
+<!-- LANGUAGE SUB-MENU OVERLAY -->
+<div class="overlay" id="langOverlay" style="display:none;">
+  <h1>เลือกภาษา 🔤</h1>
+  <p>อยากหาตัวอักษรภาษาอะไรดี?</p>
+  <div class="lang-cards">
+    <button class="lang-card" id="langThaiBtn">
+      <span class="icon">🇹🇭</span>
+      <span class="title">ภาษาไทย ก-ฮ</span>
+    </button>
+    <button class="lang-card" id="langEnglishBtn">
+      <span class="icon">🇬🇧</span>
+      <span class="title">English A-Z</span>
+    </button>
+  </div>
+  <button class="back-link" id="langBackBtn">‹ กลับไปเลือกเกม</button>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= AUDIO ================= */
+  var audioCtx = null;
+  function ctx(){ if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return audioCtx; }
+
+  function tone(freq,duration,type,when){
+    type = type || 'sine'; when = when || 0;
+    var c = ctx();
+    var o = c.createOscillator();
+    var g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    o.connect(g); g.connect(c.destination);
+    var t0 = c.currentTime + when;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.35, t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+duration);
+    o.start(t0); o.stop(t0+duration+0.05);
+  }
+  function playPop(){ tone(650,0.10,'sine',0); tone(920,0.09,'sine',0.06); }
+  function playCheer(){ [523,659,784,1047].forEach(function(f,i){ tone(f,0.22,'triangle',i*0.13); }); }
+  function playBuzz(){ tone(220,0.18,'sawtooth',0); tone(180,0.16,'sawtooth',0.08); }
+
+  /* ================= SPEECH ================= */
+  var thaiVoice = null;
+  function pickVoice(){
+    if(!('speechSynthesis' in window)) return;
+    var voices = speechSynthesis.getVoices();
+    thaiVoice = voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('th') === 0; }) || null;
+  }
+  if('speechSynthesis' in window){
+    pickVoice();
+    speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  var lastSentence = '';
+  function speak(text){
+    lastSentence = text;
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'th-TH';
+    if(thaiVoice) u.voice = thaiVoice;
+    u.rate = 0.85; u.pitch = 1.25;
+    speechSynthesis.speak(u);
+  }
+
+  var THAI_WORDS = ['','หนึ่ง','สอง','สาม','สี่','ห้า'];
+
+  /* ================= SHARED DOM ================= */
+  var fedCountEl = document.getElementById('fedCountEl');
+  var targetCountEl = document.getElementById('targetCountEl');
+  var badgeIcon = document.getElementById('badgeIcon');
+  var instructionText = document.getElementById('instructionText');
+  var celebrate = document.getElementById('celebrate');
+  var menuOverlay = document.getElementById('menuOverlay');
+  var feedStage = document.getElementById('feedStage');
+  var shelfWrap = document.getElementById('shelfWrap');
+  var countStage = document.getElementById('countStage');
+  var letterStage = document.getElementById('letterStage');
+
+  var currentMode = null; // 'feed' | 'count' | 'letter'
+
+  function say(text){
+    instructionText.textContent = text;
+    setTimeout(function(){ speak(text); }, 200);
+  }
+
+  function unlockAudio(){
+    ctx();
+    if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+  }
+
+  /* ================= FOOD ICONS (inline SVG) ================= */
+  var FOOD_SVG = {
+    bone: '<svg viewBox="0 0 100 100"><path d="M24 40c-8 0-14 6-14 13 0 6 4 11 10 12-1 2-2 4-2 7 0 8 6 13 13 13 6 0 11-4 12-9h14c1 5 6 9 12 9 7 0 13-5 13-13 0-3-1-5-2-7 6-1 10-6 10-12 0-7-6-13-14-13-5 0-9 2-11 6H35c-2-4-6-6-11-6z" fill="#F7F6F2" stroke="#D9D5C9" stroke-width="3"/></svg>',
+    apple: '<svg viewBox="0 0 100 100"><path d="M50 34c14-14 34-8 34 10 0 20-18 40-34 46-16-6-34-26-34-46 0-18 20-24 34-10z" fill="#FF6B6B" stroke="#E25353" stroke-width="3"/><path d="M48 34c0-8 3-14 10-18" fill="none" stroke="#7BAE4F" stroke-width="5" stroke-linecap="round"/><ellipse cx="60" cy="16" rx="10" ry="6" fill="#8FCB5A" transform="rotate(-25 60 16)"/></svg>'
+  };
+  var FOOD_LABEL = { bone:'กระดูก', apple:'แอปเปิ้ล' };
+
+  /* =====================================================
+     FEED THE PET MODE
+  ===================================================== */
+  var target = 3, fed = 0, foodType = 'bone';
+  var eatRadius = 85, nearRadius = 130;
+
+  var petSvg = document.getElementById('petSvg');
+  var mouthTarget = document.getElementById('mouthTarget');
+  var shelf = document.getElementById('shelf');
+  var nearSet = {};
+
+  function updateMouthClass(){
+    petSvg.classList.toggle('mouth-open', Object.keys(nearSet).length > 0);
+  }
+  function mouthCenter(){
+    var r = mouthTarget.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+  function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2, y1-y2); }
+
+  function buildShelf(){
+    shelf.innerHTML = '';
+    for(var i=0;i<target;i++){
+      (function(i){
+        var wrap = document.createElement('div');
+        wrap.className = 'food food-pop';
+        wrap.innerHTML = FOOD_SVG[foodType];
+        wrap.style.animationDelay = (i*0.06)+'s';
+        attachDrag(wrap);
+        shelf.appendChild(wrap);
+      })(i);
+    }
+  }
+
+  function attachDrag(el){
+    var startX=0, startY=0, dragging=false;
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      el.style.transition = 'none';
+      el.classList.add('drag-active');
+      unlockAudio();
+    });
+    el.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      el.style.transform = 'translate('+dx+'px,'+dy+'px) scale(1.18)';
+      var mc = mouthCenter();
+      var d = dist(e.clientX, e.clientY, mc.x, mc.y);
+      if(d < nearRadius){ nearSet[e.pointerId] = true; } else { delete nearSet[e.pointerId]; }
+      updateMouthClass();
+    });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      el.classList.remove('drag-active');
+      delete nearSet[e.pointerId];
+      updateMouthClass();
+      var mc = mouthCenter();
+      var d = dist(e.clientX, e.clientY, mc.x, mc.y);
+      if(d < eatRadius){ eatItem(el); }
+      else{
+        el.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1)';
+        el.style.transform = 'translate(0,0) scale(1)';
+      }
+    }
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+  }
+
+  function eatItem(el){
+    var mc = mouthCenter();
+    var r = el.getBoundingClientRect();
+    var elCenterX = r.left + r.width/2, elCenterY = r.top + r.height/2;
+    var moveX = mc.x - elCenterX, moveY = mc.y - elCenterY;
+    var m = /translate\(([-\d.]+)px,([-\d.]+)px\)/.exec(el.style.transform || '');
+    var curDx = m ? parseFloat(m[1]) : 0, curDy = m ? parseFloat(m[2]) : 0;
+    el.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
+    el.style.transform = 'translate('+(curDx+moveX)+'px,'+(curDy+moveY)+'px) scale(.3)';
+    el.style.opacity = '0';
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 190);
+
+    chew();
+    playPop();
+    fed++;
+    fedCountEl.textContent = fed;
+    speak(THAI_WORDS[fed] || String(fed));
+    starBurst(mc.x, mc.y);
+
+    if(fed >= target){ setTimeout(winLevel, 550); }
+  }
+
+  function chew(){
+    petSvg.classList.remove('chew');
+    void petSvg.offsetWidth;
+    petSvg.classList.add('chew');
+    setTimeout(function(){ petSvg.classList.remove('chew'); }, 400);
+  }
+
+  function startFeedLevel(){
+    target = randInt(1,5);
+    fed = 0;
+    foodType = Math.random() < 0.5 ? 'bone' : 'apple';
+    badgeIcon.textContent = foodType === 'bone' ? '🍖' : '🍎';
+    fedCountEl.textContent = fed;
+    targetCountEl.textContent = target;
+    buildShelf();
+    say('ป้อน' + FOOD_LABEL[foodType] + 'ให้น้องหมา ' + target + ' ชิ้นนะ');
+  }
+
+  /* =====================================================
+     COUNT NUMBERS MODE
+  ===================================================== */
+  var ICONS = [
+    { emoji:'⭐', label:'ดวง', name:'ดาว' },
+    { emoji:'🐟', label:'ตัว', name:'ปลา' },
+    { emoji:'🎈', label:'ลูก', name:'ลูกโป่ง' },
+    { emoji:'🍎', label:'ผล', name:'แอปเปิ้ล' },
+    { emoji:'🦋', label:'ตัว', name:'ผีเสื้อ' }
+  ];
+  var SLOTS = [ [18,22],[50,14],[82,26],[26,58],[68,62],[46,40] ];
+
+  var countTotal = 3, countTapped = 0, countIcon = ICONS[0];
+  var countObjects = document.getElementById('countObjects');
+  var answersWrap = document.getElementById('answersWrap');
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function buildCountObjects(){
+    countObjects.innerHTML = '';
+    answersWrap.innerHTML = '';
+    var slots = shuffle(SLOTS).slice(0, countTotal);
+    slots.forEach(function(pos, i){
+      var jitterX = (Math.random()*6-3);
+      var jitterY = (Math.random()*6-3);
+      var item = document.createElement('div');
+      item.className = 'count-item';
+      item.textContent = countIcon.emoji;
+      item.style.left = (pos[0]+jitterX) + '%';
+      item.style.top = (pos[1]+jitterY) + '%';
+      item.style.animationDelay = (i*0.07) + 's';
+      item.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(item.classList.contains('counted')) return;
+        unlockAudio();
+        item.classList.add('counted');
+        playPop();
+        countTapped++;
+        fedCountEl.textContent = countTapped;
+        speak(THAI_WORDS[countTapped] || String(countTapped));
+        var r = item.getBoundingClientRect();
+        starBurst(r.left + r.width/2, r.top + r.height/2);
+        if(countTapped >= countTotal){
+          setTimeout(showCountQuestion, 700);
+        }
+      });
+      countObjects.appendChild(item);
+    });
+  }
+
+  function showCountQuestion(){
+    say('ทั้งหมดมี' + countIcon.name + 'กี่' + countIcon.label + '?');
+    var options = new Set([countTotal]);
+    while(options.size < 3){
+      var candidate = randInt(1,5);
+      options.add(candidate);
+    }
+    var opts = shuffle(Array.from(options));
+    answersWrap.innerHTML = '';
+    opts.forEach(function(val, i){
+      var btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = val;
+      btn.style.animationDelay = (i*0.08)+'s';
+      btn.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(val === countTotal){
+          btn.classList.add('correct');
+          setTimeout(winLevel, 350);
+        }else{
+          btn.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ btn.classList.remove('shake'); }, 500);
+        }
+      });
+      answersWrap.appendChild(btn);
+    });
+  }
+
+  function startCountLevel(){
+    countTotal = randInt(1,5);
+    countTapped = 0;
+    countIcon = ICONS[randInt(0, ICONS.length-1)];
+    badgeIcon.textContent = countIcon.emoji;
+    fedCountEl.textContent = countTapped;
+    targetCountEl.textContent = countTotal;
+    buildCountObjects();
+    say('นับ' + countIcon.name + 'ให้หน่อย แตะนับทีละอันเลย!');
+  }
+
+  /* ================= SHARED FX ================= */
+  function starBurst(x,y){
+    var symbols = ['⭐','✨','🌟'];
+    for(var i=0;i<6;i++){
+      var s = document.createElement('div');
+      s.className = 'star-burst';
+      s.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+      var angle = (Math.PI*2/6)*i + Math.random()*0.4;
+      var dist_ = 60 + Math.random()*40;
+      s.style.setProperty('--tx', Math.cos(angle)*dist_ + 'px');
+      s.style.setProperty('--ty', Math.sin(angle)*dist_ + 'px');
+      s.style.left = x+'px'; s.style.top = y+'px';
+      document.body.appendChild(s);
+      (function(node){ setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); }, 650); })(s);
+    }
+  }
+
+  var confettiColors = ['#FF9EBB','#8C7CF0','#FFC65C','#7BD389','#7FD6E8'];
+  function confettiBurst(){
+    for(var i=0;i<40;i++){
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      var size = 8 + Math.random()*8;
+      c.style.width = size+'px'; c.style.height = (size*0.6)+'px';
+      c.style.left = (Math.random()*100)+'vw';
+      c.style.background = confettiColors[Math.floor(Math.random()*confettiColors.length)];
+      c.style.animationDuration = (2.2 + Math.random()*1.6)+'s';
+      c.style.animationDelay = (Math.random()*0.4)+'s';
+      document.body.appendChild(c);
+      (function(node){ setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); }, 4200); })(c);
+    }
+  }
+
+  function winLevel(){
+    playCheer();
+    confettiBurst();
+    speak('เก่งมาก! เก่งจังเลย');
+    celebrate.classList.add('show');
+  }
+
+  /* =====================================================
+     FIND THE LETTER MODE (Thai consonants + English A-Z)
+  ===================================================== */
+  var THAI_LETTERS = [
+    {ch:'ก',read:'กอ ไก่'}, {ch:'ข',read:'ขอ ไข่'}, {ch:'ค',read:'คอ ควาย'}, {ch:'ฆ',read:'คอ ระฆัง'},
+    {ch:'ง',read:'งอ งู'}, {ch:'จ',read:'จอ จาน'}, {ch:'ฉ',read:'ฉอ ฉิ่ง'}, {ch:'ช',read:'ชอ ช้าง'},
+    {ch:'ซ',read:'ซอ โซ่'}, {ch:'ฌ',read:'ชอ เฌอ'}, {ch:'ญ',read:'ยอ หญิง'}, {ch:'ฎ',read:'ดอ ชฎา'},
+    {ch:'ฏ',read:'ตอ ปฏัก'}, {ch:'ฐ',read:'ถอ ฐาน'}, {ch:'ฑ',read:'ทอ มณโฑ'}, {ch:'ฒ',read:'ทอ ผู้เฒ่า'},
+    {ch:'ณ',read:'นอ เณร'}, {ch:'ด',read:'ดอ เด็ก'}, {ch:'ต',read:'ตอ เต่า'}, {ch:'ถ',read:'ถอ ถุง'},
+    {ch:'ท',read:'ทอ ทหาร'}, {ch:'ธ',read:'ทอ ธง'}, {ch:'น',read:'นอ หนู'}, {ch:'บ',read:'บอ ใบไม้'},
+    {ch:'ป',read:'ปอ ปลา'}, {ch:'ผ',read:'ผอ ผึ้ง'}, {ch:'ฝ',read:'ฝอ ฝา'}, {ch:'พ',read:'พอ พาน'},
+    {ch:'ฟ',read:'ฟอ ฟัน'}, {ch:'ภ',read:'พอ สำเภา'}, {ch:'ม',read:'มอ ม้า'}, {ch:'ย',read:'ยอ ยักษ์'},
+    {ch:'ร',read:'รอ เรือ'}, {ch:'ล',read:'ลอ ลิง'}, {ch:'ว',read:'วอ แหวน'}, {ch:'ศ',read:'สอ ศาลา'},
+    {ch:'ษ',read:'สอ ฤๅษี'}, {ch:'ส',read:'สอ เสือ'}, {ch:'ห',read:'หอ หีบ'}, {ch:'ฬ',read:'ลอ จุฬา'},
+    {ch:'อ',read:'ออ อ่าง'}, {ch:'ฮ',read:'ฮอ นกฮูก'}
+  ];
+  var ENGLISH_LETTERS = [
+    {ch:'A',read:'เอ'},{ch:'B',read:'บี'},{ch:'C',read:'ซี'},{ch:'D',read:'ดี'},{ch:'E',read:'อี'},
+    {ch:'F',read:'เอฟ'},{ch:'G',read:'จี'},{ch:'H',read:'เอช'},{ch:'I',read:'ไอ'},{ch:'J',read:'เจ'},
+    {ch:'K',read:'เค'},{ch:'L',read:'แอล'},{ch:'M',read:'เอ็ม'},{ch:'N',read:'เอ็น'},{ch:'O',read:'โอ'},
+    {ch:'P',read:'พี'},{ch:'Q',read:'คิว'},{ch:'R',read:'อาร์'},{ch:'S',read:'เอส'},{ch:'T',read:'ที'},
+    {ch:'U',read:'ยู'},{ch:'V',read:'วี'},{ch:'W',read:'ดับเบิลยู'},{ch:'X',read:'เอ็กซ์'},{ch:'Y',read:'วาย'},
+    {ch:'Z',read:'แซด'}
+  ];
+  var TILE_COLORS = ['#8C7CF0','#FF9EBB','#FFC65C','#5CD3C0','#7BD389','#7FA8E8'];
+
+  var letterLang = 'thai';
+  var targetLetterObj = null;
+  var letterObjects = document.getElementById('letterObjects');
+  var letterTargetBadge = document.getElementById('letterTargetBadge');
+
+  function buildLetterTiles(){
+    letterObjects.innerHTML = '';
+    var pool = letterLang === 'thai' ? THAI_LETTERS : ENGLISH_LETTERS;
+    var shuffledPool = shuffle(pool);
+    var tileCount = Math.min(6, pool.length);
+    var tiles = shuffle(shuffledPool.slice(0, tileCount));
+    targetLetterObj = shuffledPool[0];
+    var slots = shuffle(SLOTS).slice(0, tiles.length);
+
+    tiles.forEach(function(letterObj, i){
+      var pos = slots[i] || SLOTS[i % SLOTS.length];
+      var tile = document.createElement('div');
+      tile.className = 'letter-tile';
+      tile.textContent = letterObj.ch;
+      tile.style.left = pos[0] + '%';
+      tile.style.top = pos[1] + '%';
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.style.animationDelay = (i * 0.06) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(tile.classList.contains('correct')) return;
+        if(letterObj.ch === targetLetterObj.ch){
+          tile.classList.add('correct');
+          playPop();
+          setTimeout(winLevel, 350);
+        }else{
+          tile.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ tile.classList.remove('shake'); }, 500);
+        }
+      });
+      letterObjects.appendChild(tile);
+    });
+
+    letterTargetBadge.textContent = targetLetterObj.ch;
+  }
+
+  function startLetterLevel(){
+    buildLetterTiles();
+    say('ตามหาตัวอักษร ' + targetLetterObj.read + ' ให้เจอ!');
+  }
+
+  /* ================= MODE SWITCHING ================= */
+  var counterBadge = document.getElementById('counterBadge');
+  var langOverlay = document.getElementById('langOverlay');
+
+  function hideAllStages(){
+    feedStage.style.display = 'none';
+    shelfWrap.style.display = 'none';
+    countStage.style.display = 'none';
+    letterStage.style.display = 'none';
+    counterBadge.style.display = 'flex';
+    letterTargetBadge.style.display = 'none';
+  }
+
+  function showMenu(){
+    speechSynthesis && speechSynthesis.cancel && speechSynthesis.cancel();
+    currentMode = null;
+    langOverlay.style.display = 'none';
+    menuOverlay.style.display = 'flex';
+    celebrate.classList.remove('show');
+    hideAllStages();
+  }
+
+  function enterFeedMode(){
+    currentMode = 'feed';
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    feedStage.style.display = 'flex';
+    shelfWrap.style.display = 'block';
+    startFeedLevel();
+  }
+
+  function enterCountMode(){
+    currentMode = 'count';
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    countStage.style.display = 'flex';
+    startCountLevel();
+  }
+
+  function enterLetterMode(lang){
+    currentMode = 'letter';
+    letterLang = lang;
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    letterStage.style.display = 'flex';
+    counterBadge.style.display = 'none';
+    letterTargetBadge.style.display = 'flex';
+    startLetterLevel();
+  }
+
+  document.getElementById('feedModeBtn').addEventListener('click', function(){
+    unlockAudio(); enterFeedMode(); playPop();
+  });
+  document.getElementById('countModeBtn').addEventListener('click', function(){
+    unlockAudio(); enterCountMode(); playPop();
+  });
+  document.getElementById('letterModeBtn').addEventListener('click', function(){
+    unlockAudio(); playPop();
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'flex';
+  });
+  document.getElementById('langThaiBtn').addEventListener('click', function(){
+    unlockAudio(); enterLetterMode('thai'); playPop();
+  });
+  document.getElementById('langEnglishBtn').addEventListener('click', function(){
+    unlockAudio(); enterLetterMode('english'); playPop();
+  });
+  document.getElementById('langBackBtn').addEventListener('click', function(){
+    langOverlay.style.display = 'none';
+    menuOverlay.style.display = 'flex';
+  });
+  document.getElementById('homeBtn').addEventListener('click', function(){
+    showMenu();
+  });
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    if(currentMode === 'feed'){ startFeedLevel(); }
+    else if(currentMode === 'count'){ startCountLevel(); }
+    else if(currentMode === 'letter'){ startLetterLevel(); }
+  });
+  document.getElementById('replayBtn').addEventListener('click', function(){
+    if(lastSentence) speak(lastSentence);
+  });
+
+  /* prevent iOS/Android scroll & zoom gestures */
+  document.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+  document.addEventListener('dblclick', function(e){ e.preventDefault(); });
+
+})();
+</script>
+</body>
+</html>
 
