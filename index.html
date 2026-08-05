@@ -1374,18 +1374,45 @@
   function resizeDrawCanvas(){
     var wrap = drawCanvas.parentElement;
     var rect = wrap.getBoundingClientRect();
-    if(rect.width <= 0 || rect.height <= 0) return;
+    var w = rect.width > 0 ? rect.width : (wrap.clientWidth || window.innerWidth);
+    var h = rect.height > 0 ? rect.height : (wrap.clientHeight || window.innerHeight * 0.5);
+    if(w <= 0 || h <= 0) return;
+
+    // Preserve existing artwork across resizes when possible
+    var prevData = null;
+    if(drawCanvas.width > 0 && drawCanvas.height > 0){
+      try{ prevData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height); }catch(err){}
+    }
+
     var dpr = window.devicePixelRatio || 1;
-    drawCanvas.width = rect.width * dpr;
-    drawCanvas.height = rect.height * dpr;
-    drawCanvas.style.width = rect.width + 'px';
-    drawCanvas.style.height = rect.height + 'px';
+    drawCanvas.width = Math.round(w * dpr);
+    drawCanvas.height = Math.round(h * dpr);
+    drawCanvas.style.width = w + 'px';
+    drawCanvas.style.height = h + 'px';
     drawCtx.setTransform(1, 0, 0, 1, 0, 0);
     drawCtx.scale(dpr, dpr);
     drawCtx.lineCap = 'round';
     drawCtx.lineJoin = 'round';
     drawCtx.lineWidth = 14;
     drawCtx.strokeStyle = currentDrawColor;
+
+    if(prevData){
+      try{
+        var tmp = document.createElement('canvas');
+        tmp.width = prevData.width; tmp.height = prevData.height;
+        tmp.getContext('2d').putImageData(prevData, 0, 0);
+        drawCtx.drawImage(tmp, 0, 0, prevData.width, prevData.height, 0, 0, w, h);
+      }catch(err){}
+    }
+  }
+
+  var drawResizeObserver = null;
+  function ensureDrawResizeObserver(){
+    if(drawResizeObserver || !window.ResizeObserver) return;
+    drawResizeObserver = new ResizeObserver(function(){
+      resizeDrawCanvas();
+    });
+    drawResizeObserver.observe(drawCanvas.parentElement);
   }
 
   function buildDrawColorButtons(){
@@ -1454,6 +1481,12 @@
   function startDrawLevel(){
     buildDrawColorButtons();
     resizeDrawCanvas();
+    ensureDrawResizeObserver();
+    // Extra safety net: some browsers haven't finished layout on the very
+    // first synchronous call, so re-measure one frame later too.
+    requestAnimationFrame(function(){
+      requestAnimationFrame(resizeDrawCanvas);
+    });
     say('วาดภาพอิสระได้เลยนะ สนุกๆ!');
   }
 
