@@ -157,6 +157,7 @@
     user-select:none;
   }
   @keyframes itemPop{ from{ transform:translate(-50%,-50%) scale(0) rotate(-20deg); opacity:0 } to{ transform:translate(-50%,-50%) scale(1) rotate(0); opacity:1 } }
+  @keyframes tilePop{ from{ transform:scale(0) rotate(-20deg); opacity:0 } to{ transform:scale(1) rotate(0); opacity:1 } }
   .count-item.counted{
     animation:itemCounted .4s ease forwards;
     pointer-events:none;
@@ -222,6 +223,87 @@
   .color-tile.correct{ box-shadow:0 0 0 6px #5FCB80, 0 8px 0 rgba(0,0,0,.15); }
   .color-tile.shake{ animation:shakeBtn .45s ease; }
 
+  /* ---------- MEMORY SOUND (SIMON SAYS) MODE ---------- */
+  .simon-stage{
+    flex:1; width:100%; display:flex; align-items:center; justify-content:center;
+    position:relative; min-height:0;
+  }
+  .simon-grid{
+    display:grid; grid-template-columns:repeat(2,1fr);
+    gap:min(6vw,30px); padding:10px;
+  }
+  .simon-btn{
+    width:min(28vw,150px); height:min(28vw,150px); border-radius:40px;
+    border:6px solid #fff; background:var(--btn-color, #FFD9B0);
+    font-size:clamp(38px,9vw,66px); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 0 rgba(0,0,0,.15); cursor:pointer; touch-action:manipulation;
+    transition:transform .1s, filter .1s, box-shadow .1s;
+  }
+  .simon-btn:active{ transform:translateY(6px); box-shadow:0 2px 0 rgba(0,0,0,.15); }
+  .simon-btn.lit{
+    transform:scale(1.14); filter:brightness(1.3);
+    box-shadow:0 0 0 10px rgba(255,255,255,.55), 0 10px 0 rgba(0,0,0,.15);
+  }
+  .simon-btn.disabled{ pointer-events:none; opacity:.88; }
+
+  /* ---------- WORD BLENDING MODE (ผสมคำ) ---------- */
+  .word-stage{
+    flex:1; width:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:min(4vh,24px); min-height:0;
+  }
+  .word-picture{
+    font-size:clamp(64px,15vw,120px); line-height:1;
+    filter:drop-shadow(0 8px 6px rgba(0,0,0,.15));
+    animation:idleBob 3.2s ease-in-out infinite;
+  }
+  .word-slots{ display:flex; gap:min(3.5vw,16px); }
+  .word-slot{
+    width:min(22vw,100px); height:min(22vw,100px); border-radius:24px;
+    border:5px dashed var(--panel-border); background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(28px,6.5vw,42px); font-weight:800; color:var(--purple-dark);
+    box-shadow:0 6px 0 rgba(0,0,0,.05); transition:background .15s, border-style .15s;
+  }
+  .word-slot.filled{ border-style:solid; background:linear-gradient(180deg,#FFF7EE,#FFEFDD); }
+  .word-slot.shake{ animation:shakeBtn .45s ease; }
+  .word-tray{ display:flex; gap:min(5vw,26px); min-height:min(24vw,110px); }
+  .word-tile{
+    width:min(24vw,110px); height:min(24vw,110px); border-radius:28px;
+    border:6px solid #fff; background:linear-gradient(180deg,var(--purple),var(--purple-dark));
+    color:#fff; font-size:clamp(30px,7vw,46px); font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 0 rgba(0,0,0,.15); cursor:pointer; touch-action:manipulation;
+    animation:tilePop .35s ease both;
+  }
+  .word-tile:active{ transform:translateY(6px); box-shadow:0 2px 0 rgba(0,0,0,.15); }
+  .word-tile.used{ opacity:0; pointer-events:none; transform:scale(.4); }
+
+  /* ---------- LEARNING PAGES (หน้าสอน) ---------- */
+  .learn-stage{
+    flex:1; width:100%; display:flex; flex-direction:column; min-height:0; padding:16px 12px 0;
+  }
+  .learn-grid{
+    flex:1; width:100%; min-height:0; overflow-y:auto;
+    -webkit-overflow-scrolling:touch; touch-action:pan-y;
+    display:flex; flex-wrap:wrap; justify-content:center; align-content:flex-start;
+    gap:min(3vw,14px);
+    padding:8px 6px calc(24px + env(safe-area-inset-bottom));
+  }
+  .learn-tile{
+    width:min(17vw,76px); height:min(17vw,76px); flex-shrink:0;
+    border-radius:20px; border:4px solid #fff;
+    background:linear-gradient(180deg,#ffffff,#FFF7EE);
+    font-family:inherit; font-size:clamp(20px,5vw,32px); font-weight:800; color:var(--purple-dark);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 0 rgba(0,0,0,.08); cursor:pointer; touch-action:manipulation;
+    animation:tilePop .3s ease both;
+  }
+  .learn-tile.active{
+    transform:scale(1.15);
+    background:linear-gradient(180deg,#FFE9C9,#FFD9A0);
+    box-shadow:0 0 0 6px rgba(255,198,92,.5), 0 6px 0 rgba(0,0,0,.08);
+  }
+
   /* ---------- LANGUAGE SUB-MENU ---------- */
   .lang-cards{ display:flex; gap:min(4vw,28px); flex-wrap:wrap; justify-content:center; margin-top:6px; }
   .lang-card{
@@ -243,11 +325,16 @@
   /* ---------- MENU OVERLAY ---------- */
   .overlay{
     position:fixed; inset:0; z-index:50; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:22px; text-align:center; padding:20px;
+    align-items:center; justify-content:flex-start; gap:22px; text-align:center; padding:20px;
     background:linear-gradient(180deg,var(--sky-top),var(--sky-bottom));
+    overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
   }
-  .overlay h1{ font-size:clamp(26px,5.6vw,44px); margin:0 0 4px; color:var(--purple-dark); text-shadow:0 3px 0 #fff; }
+  .overlay h1{ font-size:clamp(26px,5.6vw,44px); margin:12px 0 4px; color:var(--purple-dark); text-shadow:0 3px 0 #fff; }
   .overlay p{ font-size:clamp(17px,3.2vw,22px); margin:0; font-weight:600; }
+  .overlay .section-label{
+    font-size:clamp(16px,2.8vw,20px); font-weight:800; color:var(--purple-dark);
+    margin:6px 0 -6px;
+  }
 
   .mode-cards{ display:flex; gap:min(4vw,28px); flex-wrap:wrap; justify-content:center; margin-top:6px; }
   .mode-card{
@@ -265,6 +352,9 @@
   .mode-card.count{ border-color:#BEE9FF; }
   .mode-card.letter{ border-color:#D6F5D0; }
   .mode-card.color{ border-color:#FFD9F0; }
+  .mode-card.simon{ border-color:#FFE3B0; }
+  .mode-card.word{ border-color:#D8E8FF; }
+  .mode-card.learn{ border-color:#E0D4FF; }
 
   .big-btn{
     font-family:inherit; font-weight:800; font-size:clamp(22px,4.4vw,32px);
@@ -310,6 +400,7 @@
     <div class="timer-badge" id="timerBadge">⏱️ <span id="timerNum">10</span></div>
     <div class="letter-target-badge" id="letterTargetBadge">ก</div>
     <div class="color-target-badge" id="colorTargetBadge"></div>
+    <div class="counter-badge" id="simonLevelBadge" style="display:none;">🎵 รอบ <span id="simonRoundNum">1</span></div>
     <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
   </div>
 
@@ -368,6 +459,31 @@
   <div class="count-stage" id="colorStage" style="display:none;">
     <div class="count-objects" id="colorObjects"></div>
   </div>
+
+  <!-- ============ MEMORY SOUND (SIMON SAYS) MODE ============ -->
+  <div class="simon-stage" id="simonStage" style="display:none;">
+    <div class="simon-grid">
+      <button class="simon-btn" id="simonBtn0" style="--btn-color:#FFB199">🐶</button>
+      <button class="simon-btn" id="simonBtn1" style="--btn-color:#FFD86B">🐱</button>
+      <button class="simon-btn" id="simonBtn2" style="--btn-color:#8FE0A8">🐸</button>
+      <button class="simon-btn" id="simonBtn3" style="--btn-color:#7FC8F8">🦆</button>
+    </div>
+  </div>
+
+  <!-- ============ WORD BLENDING MODE (ผสมคำ) ============ -->
+  <div class="word-stage" id="wordStage" style="display:none;">
+    <div class="word-picture" id="wordPicture">🐟</div>
+    <div class="word-slots" id="wordSlots">
+      <div class="word-slot" data-slot="0"></div>
+      <div class="word-slot" data-slot="1"></div>
+    </div>
+    <div class="word-tray" id="wordTray"></div>
+  </div>
+
+  <!-- ============ LEARNING PAGES (หน้าสอน: 1-10 / ก-ฮ / A-Z) ============ -->
+  <div class="learn-stage" id="learnStage" style="display:none;">
+    <div class="learn-grid" id="learnGrid"></div>
+  </div>
 </div>
 
 <!-- MENU / START OVERLAY -->
@@ -394,6 +510,35 @@
       <span class="icon">🎨</span>
       <span class="title">หาสี</span>
       <span class="desc">ตามหาสีที่กำหนดให้เจอ</span>
+    </button>
+    <button class="mode-card simon" id="simonModeBtn">
+      <span class="icon">🎵</span>
+      <span class="title">จดจำเสียง</span>
+      <span class="desc">ฟังแล้วกดตามลำดับ</span>
+    </button>
+    <button class="mode-card word" id="wordModeBtn">
+      <span class="icon">🧩</span>
+      <span class="title">ผสมคำ</span>
+      <span class="desc">ต่อพยางค์ให้เป็นคำ</span>
+    </button>
+  </div>
+
+  <p class="section-label">📖 หรือฝึกฝนกับหน้าสอน</p>
+  <div class="mode-cards">
+    <button class="mode-card learn" id="learnNumbersBtn">
+      <span class="icon">🔟</span>
+      <span class="title">หน้าเลข 1-10</span>
+      <span class="desc">แตะฟังเสียงตัวเลข</span>
+    </button>
+    <button class="mode-card learn" id="learnThaiBtn">
+      <span class="icon">ก</span>
+      <span class="title">หน้า ก-ฮ</span>
+      <span class="desc">แตะฟังเสียงพยัญชนะ</span>
+    </button>
+    <button class="mode-card learn" id="learnEnglishBtn">
+      <span class="icon">A</span>
+      <span class="title">หน้า A-Z</span>
+      <span class="desc">แตะฟังเสียงตัวอักษร</span>
     </button>
   </div>
 </div>
@@ -561,14 +706,18 @@
     }
   }
 
-  function failLevel(reason){
-    var msg = reason === 'timeout'
-      ? 'หมดเวลาแล้วนะ ป้อนไม่ครบจำนวน ลองใหม่อีกครั้งนะ!'
-      : 'หมดเวลาแล้วนะ ป้อนเกินจำนวนไปนิดนึงนะ ลองใหม่อีกครั้งนะ!';
+  function showFailOverlay(msg){
     failText.textContent = msg;
     speak(msg);
     playBuzz();
     failOverlay.classList.add('show');
+  }
+
+  function failLevel(reason){
+    var msg = reason === 'timeout'
+      ? 'หมดเวลาแล้วนะ ป้อนไม่ครบจำนวน ลองใหม่อีกครั้งนะ!'
+      : 'หมดเวลาแล้วนะ ป้อนเกินจำนวนไปนิดนึงนะ ลองใหม่อีกครั้งนะ!';
+    showFailOverlay(msg);
   }
 
   var petSvg = document.getElementById('petSvg');
@@ -961,9 +1110,215 @@
     say('หาสี' + targetColorObj.name + 'ให้เจอ!');
   }
 
+  /* =====================================================
+     MEMORY SOUND MODE (Simon Says)
+  ===================================================== */
+  var SIMON_NOTES = [523.25, 659.25, 783.99, 987.77]; // C5 E5 G5 B5 - distinct musical notes
+  var simonButtonEls = [
+    document.getElementById('simonBtn0'),
+    document.getElementById('simonBtn1'),
+    document.getElementById('simonBtn2'),
+    document.getElementById('simonBtn3')
+  ];
+  var simonSequence = [];
+  var simonUserIndex = 0;
+  var simonLength = 2;
+  var simonPlaying = false;
+  var simonRoundNum = document.getElementById('simonRoundNum');
+
+  function playSimonTone(idx){ tone(SIMON_NOTES[idx], 0.4, 'triangle', 0); }
+
+  function litSimonButton(idx, duration){
+    var btn = simonButtonEls[idx];
+    btn.classList.add('lit');
+    playSimonTone(idx);
+    setTimeout(function(){ btn.classList.remove('lit'); }, duration);
+  }
+
+  function disableSimonButtons(){ simonButtonEls.forEach(function(b){ b.classList.add('disabled'); }); }
+  function enableSimonButtons(){ simonButtonEls.forEach(function(b){ b.classList.remove('disabled'); }); }
+
+  function playSimonSequence(){
+    simonPlaying = true;
+    disableSimonButtons();
+    var i = 0;
+    var stepDelay = 750;
+    function step(){
+      if(i >= simonSequence.length){
+        simonPlaying = false;
+        enableSimonButtons();
+        simonUserIndex = 0;
+        return;
+      }
+      litSimonButton(simonSequence[i], 450);
+      i++;
+      setTimeout(step, stepDelay);
+    }
+    setTimeout(step, 600);
+  }
+
+  function startSimonLevel(){
+    simonSequence = [];
+    for(var i=0;i<simonLength;i++){ simonSequence.push(randInt(0,3)); }
+    simonUserIndex = 0;
+    simonRoundNum.textContent = simonLength - 1;
+    say('ฟังดีๆ แล้วกดตามลำดับให้ถูกนะ!');
+    playSimonSequence();
+  }
+
+  simonButtonEls.forEach(function(btn, idx){
+    btn.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      if(simonPlaying || btn.classList.contains('disabled')) return;
+      unlockAudio();
+      litSimonButton(idx, 300);
+
+      if(simonSequence[simonUserIndex] === idx){
+        simonUserIndex++;
+        if(simonUserIndex >= simonSequence.length){
+          disableSimonButtons();
+          setTimeout(function(){
+            simonLength = Math.min(simonLength + 1, 7);
+            winLevel();
+          }, 450);
+        }
+      }else{
+        disableSimonButtons();
+        showFailOverlay('จำไม่ได้แล้วนะ ฟังใหม่อีกครั้งนะ!');
+      }
+    });
+  });
+
+  /* =====================================================
+     WORD BLENDING MODE (ผสมคำ)
+  ===================================================== */
+  var WORDS = [
+    { word:'ปลา', parts:['ปล','า'], emoji:'🐟' },
+    { word:'หมา', parts:['หม','า'], emoji:'🐶' },
+    { word:'หมู', parts:['หม','ู'], emoji:'🐷' },
+    { word:'นก',  parts:['น','ก'],  emoji:'🐦' },
+    { word:'มด',  parts:['ม','ด'],  emoji:'🐜' },
+    { word:'ปู',  parts:['ป','ู'],  emoji:'🦀' },
+    { word:'งู',  parts:['ง','ู'],  emoji:'🐍' },
+    { word:'ตา',  parts:['ต','า'],  emoji:'👁️' },
+    { word:'วัว', parts:['วั','ว'], emoji:'🐮' },
+    { word:'ยุง', parts:['ยุ','ง'], emoji:'🦟' }
+  ];
+
+  var wordTargetObj = null;
+  var wordSlotsFilled = [null, null];
+  var wordPicture = document.getElementById('wordPicture');
+  var wordSlotsEl = document.getElementById('wordSlots');
+  var wordTray = document.getElementById('wordTray');
+
+  function renderWordTiles(){
+    var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+    slotEls.forEach(function(s){ s.textContent = ''; s.classList.remove('filled'); });
+    wordSlotsFilled = [null, null];
+    wordTray.innerHTML = '';
+    var shuffledParts = shuffle(wordTargetObj.parts.slice());
+    shuffledParts.forEach(function(partText, i){
+      var tile = document.createElement('div');
+      tile.className = 'word-tile';
+      tile.textContent = partText;
+      tile.style.animationDelay = (i*0.07) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(tile.classList.contains('used')) return;
+        unlockAudio();
+        placeWordTile(tile, partText);
+      });
+      wordTray.appendChild(tile);
+    });
+  }
+
+  function placeWordTile(tile, partText){
+    var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+    var emptyIdx = wordSlotsFilled.indexOf(null);
+    if(emptyIdx === -1) return;
+    wordSlotsFilled[emptyIdx] = partText;
+    slotEls[emptyIdx].textContent = partText;
+    slotEls[emptyIdx].classList.add('filled');
+    tile.classList.add('used');
+    playPop();
+    if(wordSlotsFilled.indexOf(null) === -1){
+      setTimeout(checkWordResult, 350);
+    }
+  }
+
+  function checkWordResult(){
+    var built = wordSlotsFilled.join('');
+    if(built === wordTargetObj.word){
+      winLevel();
+    }else{
+      var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+      slotEls.forEach(function(s){ s.classList.add('shake'); });
+      playBuzz();
+      speak('ลองสลับที่ดูใหม่นะ!');
+      setTimeout(function(){
+        slotEls.forEach(function(s){ s.classList.remove('shake'); });
+        renderWordTiles();
+      }, 700);
+    }
+  }
+
+  function startWordLevel(){
+    wordTargetObj = WORDS[randInt(0, WORDS.length-1)];
+    wordPicture.textContent = wordTargetObj.emoji;
+    renderWordTiles();
+    say('ลองต่อคำว่า ' + wordTargetObj.word + ' ดูสิ!');
+  }
+
+  /* =====================================================
+     LEARNING PAGES (หน้าสอน: 1-10 / ก-ฮ / A-Z)
+     Tap a tile to hear it read aloud.
+  ===================================================== */
+  var learnGrid = document.getElementById('learnGrid');
+
+  function buildLearnGrid(type){
+    learnGrid.innerHTML = '';
+    var items = [];
+    if(type === 'numbers'){
+      for(var n=1; n<=10; n++){ items.push({ display:String(n), speakText:THAI_WORDS[n] }); }
+    }else if(type === 'thai'){
+      items = THAI_LETTERS.map(function(l){ return { display:l.ch, speakText:l.read }; });
+    }else if(type === 'english'){
+      items = ENGLISH_LETTERS.map(function(l){ return { display:l.ch, speakText:l.read }; });
+    }
+    items.forEach(function(item, i){
+      var tile = document.createElement('button');
+      tile.className = 'learn-tile';
+      tile.textContent = item.display;
+      tile.style.animationDelay = (Math.min(i,24) * 0.02) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        tile.classList.add('active');
+        playPop();
+        speak(item.speakText);
+        setTimeout(function(){ tile.classList.remove('active'); }, 350);
+      });
+      learnGrid.appendChild(tile);
+    });
+  }
+
+  function startLearnLevel(type){
+    buildLearnGrid(type);
+    var intro = {
+      numbers: 'แตะตัวเลขเพื่อฟังเสียงนะ!',
+      thai: 'แตะพยัญชนะเพื่อฟังเสียงนะ!',
+      english: 'แตะตัวอักษรเพื่อฟังเสียงนะ!'
+    };
+    say(intro[type] || 'แตะเพื่อฟังเสียงนะ!');
+  }
+
   /* ================= MODE SWITCHING ================= */
   var counterBadge = document.getElementById('counterBadge');
   var langOverlay = document.getElementById('langOverlay');
+  var simonStage = document.getElementById('simonStage');
+  var simonLevelBadge = document.getElementById('simonLevelBadge');
+  var wordStage = document.getElementById('wordStage');
+  var learnStage = document.getElementById('learnStage');
 
   function hideAllStages(){
     feedStage.style.display = 'none';
@@ -971,9 +1326,13 @@
     countStage.style.display = 'none';
     letterStage.style.display = 'none';
     colorStage.style.display = 'none';
+    simonStage.style.display = 'none';
+    wordStage.style.display = 'none';
+    learnStage.style.display = 'none';
     counterBadge.style.display = 'flex';
     letterTargetBadge.style.display = 'none';
     colorTargetBadge.style.display = 'none';
+    simonLevelBadge.style.display = 'none';
     timerBadge.style.display = 'none';
     clearFeedTimer();
   }
@@ -1030,6 +1389,38 @@
     startColorLevel();
   }
 
+  function enterSimonMode(){
+    currentMode = 'simon';
+    simonLength = 2;
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    simonStage.style.display = 'flex';
+    counterBadge.style.display = 'none';
+    simonLevelBadge.style.display = 'flex';
+    startSimonLevel();
+  }
+
+  function enterWordMode(){
+    currentMode = 'word';
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    wordStage.style.display = 'flex';
+    counterBadge.style.display = 'none';
+    startWordLevel();
+  }
+
+  function enterLearnMode(type){
+    currentMode = 'learn';
+    menuOverlay.style.display = 'none';
+    langOverlay.style.display = 'none';
+    hideAllStages();
+    learnStage.style.display = 'flex';
+    counterBadge.style.display = 'none';
+    startLearnLevel(type);
+  }
+
   document.getElementById('feedModeBtn').addEventListener('click', function(){
     unlockAudio(); enterFeedMode(); playPop();
   });
@@ -1038,6 +1429,21 @@
   });
   document.getElementById('colorModeBtn').addEventListener('click', function(){
     unlockAudio(); enterColorMode(); playPop();
+  });
+  document.getElementById('simonModeBtn').addEventListener('click', function(){
+    unlockAudio(); enterSimonMode(); playPop();
+  });
+  document.getElementById('wordModeBtn').addEventListener('click', function(){
+    unlockAudio(); enterWordMode(); playPop();
+  });
+  document.getElementById('learnNumbersBtn').addEventListener('click', function(){
+    unlockAudio(); enterLearnMode('numbers'); playPop();
+  });
+  document.getElementById('learnThaiBtn').addEventListener('click', function(){
+    unlockAudio(); enterLearnMode('thai'); playPop();
+  });
+  document.getElementById('learnEnglishBtn').addEventListener('click', function(){
+    unlockAudio(); enterLearnMode('english'); playPop();
   });
   document.getElementById('letterModeBtn').addEventListener('click', function(){
     unlockAudio(); playPop();
@@ -1063,17 +1469,23 @@
     else if(currentMode === 'count'){ startCountLevel(); }
     else if(currentMode === 'letter'){ startLetterLevel(); }
     else if(currentMode === 'color'){ startColorLevel(); }
+    else if(currentMode === 'simon'){ startSimonLevel(); }
+    else if(currentMode === 'word'){ startWordLevel(); }
   });
   document.getElementById('retryBtn').addEventListener('click', function(){
     failOverlay.classList.remove('show');
     if(currentMode === 'feed'){ startFeedLevel(); }
+    else if(currentMode === 'simon'){ startSimonLevel(); }
   });
   document.getElementById('replayBtn').addEventListener('click', function(){
     if(lastSentence) speak(lastSentence);
   });
 
   /* prevent iOS/Android scroll & zoom gestures */
-  document.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive:false });
+  document.addEventListener('touchmove', function(e){
+    if(e.target.closest && e.target.closest('.overlay, .learn-grid')) return;
+    e.preventDefault();
+  }, { passive:false });
   document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
   document.addEventListener('dblclick', function(e){ e.preventDefault(); });
 
