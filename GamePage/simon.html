@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>จดจำเสียง 🎵 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="simonLevelBadge">🎵 รอบ <span id="simonRoundNum">1</span></div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ฟังดีๆ แล้วกดตามลำดับให้ถูกนะ!</div>
+
+  <div class="simon-stage" id="simonStage">
+    <div class="simon-grid">
+      <button class="simon-btn" id="simonBtn0" style="--btn-color:#FFB199">🐶</button>
+      <button class="simon-btn" id="simonBtn1" style="--btn-color:#FFD86B">🐱</button>
+      <button class="simon-btn" id="simonBtn2" style="--btn-color:#8FE0A8">🐸</button>
+      <button class="simon-btn" id="simonBtn3" style="--btn-color:#7FC8F8">🦆</button>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<!-- FAIL / RETRY OVERLAY (wrong tap) -->
+<div class="celebrate" id="failOverlay">
+  <h2 id="failText">ลองใหม่นะ! 😊</h2>
+  <button class="big-btn" id="retryBtn">ลองอีกครั้ง ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var simonButtonEls = [
+    document.getElementById('simonBtn0'),
+    document.getElementById('simonBtn1'),
+    document.getElementById('simonBtn2'),
+    document.getElementById('simonBtn3')
+  ];
+  var simonSequence = [];
+  var simonUserIndex = 0;
+  var simonLength = 2;
+  var simonPlaying = false;
+  var simonRoundNum = document.getElementById('simonRoundNum');
+  var celebrate = document.getElementById('celebrate');
+  var failOverlay = document.getElementById('failOverlay');
+
+  function playSimonTone(idx){ tone(SIMON_NOTES[idx], 0.4, 'triangle', 0); }
+
+  function litSimonButton(idx, duration){
+    var btn = simonButtonEls[idx];
+    btn.classList.add('lit');
+    playSimonTone(idx);
+    setTimeout(function(){ btn.classList.remove('lit'); }, duration);
+  }
+
+  function disableSimonButtons(){ simonButtonEls.forEach(function(b){ b.classList.add('disabled'); }); }
+  function enableSimonButtons(){ simonButtonEls.forEach(function(b){ b.classList.remove('disabled'); }); }
+
+  function playSimonSequence(){
+    simonPlaying = true;
+    disableSimonButtons();
+    var i = 0;
+    var stepDelay = 750;
+    function step(){
+      if(i >= simonSequence.length){
+        simonPlaying = false;
+        enableSimonButtons();
+        simonUserIndex = 0;
+        return;
+      }
+      litSimonButton(simonSequence[i], 450);
+      i++;
+      setTimeout(step, stepDelay);
+    }
+    setTimeout(step, 600);
+  }
+
+  function startSimonLevel(){
+    simonSequence = [];
+    for(var i=0;i<simonLength;i++){ simonSequence.push(randInt(0,3)); }
+    simonUserIndex = 0;
+    simonRoundNum.textContent = simonLength - 1;
+    say('ฟังดีๆ แล้วกดตามลำดับให้ถูกนะ!');
+    playSimonSequence();
+  }
+
+  simonButtonEls.forEach(function(btn, idx){
+    btn.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      if(simonPlaying || btn.classList.contains('disabled')) return;
+      unlockAudio();
+      litSimonButton(idx, 300);
+
+      if(simonSequence[simonUserIndex] === idx){
+        simonUserIndex++;
+        if(simonUserIndex >= simonSequence.length){
+          disableSimonButtons();
+          setTimeout(function(){
+            simonLength = Math.min(simonLength + 1, 7);
+            winLevel();
+          }, 450);
+        }
+      }else{
+        disableSimonButtons();
+        showFailOverlay('จำไม่ได้แล้วนะ ฟังใหม่อีกครั้งนะ!');
+      }
+    });
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startSimonLevel();
+  });
+  document.getElementById('retryBtn').addEventListener('click', function(){
+    failOverlay.classList.remove('show');
+    startSimonLevel();
+  });
+
+  startSimonLevel();
+})();
+</script>
+</body>
+</html>

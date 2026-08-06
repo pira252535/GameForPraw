@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>นับเลข 🔢 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="counterBadge">
+      <span id="badgeIcon">⭐</span><span class="num-fed" id="fedCountEl">0</span> / <span class="num-target" id="targetCountEl">3</span>
+    </div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">มานับเลขกันเถอะ!</div>
+
+  <div class="count-stage" id="countStage">
+    <div class="count-objects" id="countObjects"></div>
+    <div class="answers-wrap" id="answersWrap"></div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var badgeIcon = document.getElementById('badgeIcon');
+  var fedCountEl = document.getElementById('fedCountEl');
+  var targetCountEl = document.getElementById('targetCountEl');
+  var celebrate = document.getElementById('celebrate');
+  var countObjects = document.getElementById('countObjects');
+  var answersWrap = document.getElementById('answersWrap');
+
+  var countTotal = 3, countTapped = 0, countIcon = ICONS[0];
+
+  function buildCountObjects(){
+    countObjects.innerHTML = '';
+    answersWrap.innerHTML = '';
+    var slots = shuffle(SLOTS).slice(0, countTotal);
+    slots.forEach(function(pos, i){
+      var jitterX = (Math.random()*6-3);
+      var jitterY = (Math.random()*6-3);
+      var item = document.createElement('div');
+      item.className = 'count-item';
+      item.textContent = countIcon.emoji;
+      item.style.left = (pos[0]+jitterX) + '%';
+      item.style.top = (pos[1]+jitterY) + '%';
+      item.style.animationDelay = (i*0.07) + 's';
+      item.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(item.classList.contains('counted')) return;
+        unlockAudio();
+        item.classList.add('counted');
+        playPop();
+        countTapped++;
+        fedCountEl.textContent = countTapped;
+        speak(THAI_WORDS[countTapped] || String(countTapped));
+        var r = item.getBoundingClientRect();
+        starBurst(r.left + r.width/2, r.top + r.height/2);
+        if(countTapped >= countTotal){
+          setTimeout(showCountQuestion, 700);
+        }
+      });
+      countObjects.appendChild(item);
+    });
+  }
+
+  function showCountQuestion(){
+    say('ทั้งหมดมี' + countIcon.name + 'กี่' + countIcon.label + '?');
+    var options = new Set([countTotal]);
+    while(options.size < 3){
+      options.add(randInt(1,10));
+    }
+    var opts = shuffle(Array.from(options));
+    answersWrap.innerHTML = '';
+    opts.forEach(function(val, i){
+      var btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = val;
+      btn.style.animationDelay = (i*0.08)+'s';
+      btn.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(val === countTotal){
+          btn.classList.add('correct');
+          setTimeout(winLevel, 350);
+        }else{
+          btn.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ btn.classList.remove('shake'); }, 500);
+        }
+      });
+      answersWrap.appendChild(btn);
+    });
+  }
+
+  function startCountLevel(){
+    countTotal = randInt(1,10);
+    countTapped = 0;
+    countIcon = ICONS[randInt(0, ICONS.length-1)];
+    badgeIcon.textContent = countIcon.emoji;
+    fedCountEl.textContent = countTapped;
+    targetCountEl.textContent = countTotal;
+    buildCountObjects();
+    say('นับ' + countIcon.name + 'ให้หน่อย แตะนับทีละอันเลย!');
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startCountLevel();
+  });
+
+  startCountLevel();
+})();
+</script>
+</body>
+</html>

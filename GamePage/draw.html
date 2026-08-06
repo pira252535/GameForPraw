@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>วาดภาพอิสระ 🎨 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">วาดภาพอิสระได้เลยนะ สนุกๆ!</div>
+
+  <div class="draw-stage" id="drawStage">
+    <div class="draw-canvas-wrap">
+      <canvas id="drawCanvas"></canvas>
+    </div>
+    <div class="draw-toolbar">
+      <div class="draw-colors" id="drawColors"></div>
+      <button class="draw-clear-btn" id="drawClearBtn">🗑️ ลบทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var drawCanvas = document.getElementById('drawCanvas');
+  var drawCtx = drawCanvas.getContext('2d');
+  var drawColorsEl = document.getElementById('drawColors');
+  var currentDrawColor = DRAW_COLORS[1];
+  var isDrawing = false;
+  var lastDrawX = 0, lastDrawY = 0;
+
+  function resizeDrawCanvas(){
+    var wrap = drawCanvas.parentElement;
+    var rect = wrap.getBoundingClientRect();
+    var w = rect.width > 0 ? rect.width : (wrap.clientWidth || window.innerWidth);
+    var h = rect.height > 0 ? rect.height : (wrap.clientHeight || window.innerHeight * 0.5);
+    if(w <= 0 || h <= 0) return;
+
+    var prevData = null;
+    if(drawCanvas.width > 0 && drawCanvas.height > 0){
+      try{ prevData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height); }catch(err){}
+    }
+
+    var dpr = window.devicePixelRatio || 1;
+    drawCanvas.width = Math.round(w * dpr);
+    drawCanvas.height = Math.round(h * dpr);
+    drawCanvas.style.width = w + 'px';
+    drawCanvas.style.height = h + 'px';
+    drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+    drawCtx.scale(dpr, dpr);
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    drawCtx.lineWidth = 14;
+    drawCtx.strokeStyle = currentDrawColor;
+
+    if(prevData){
+      try{
+        var tmp = document.createElement('canvas');
+        tmp.width = prevData.width; tmp.height = prevData.height;
+        tmp.getContext('2d').putImageData(prevData, 0, 0);
+        drawCtx.drawImage(tmp, 0, 0, prevData.width, prevData.height, 0, 0, w, h);
+      }catch(err){}
+    }
+  }
+
+  var drawResizeObserver = null;
+  function ensureDrawResizeObserver(){
+    if(drawResizeObserver || !window.ResizeObserver) return;
+    drawResizeObserver = new ResizeObserver(function(){
+      resizeDrawCanvas();
+    });
+    drawResizeObserver.observe(drawCanvas.parentElement);
+  }
+
+  function buildDrawColorButtons(){
+    drawColorsEl.innerHTML = '';
+    DRAW_COLORS.forEach(function(c){
+      var btn = document.createElement('button');
+      btn.className = 'draw-color-btn';
+      btn.style.background = c;
+      if(c === currentDrawColor) btn.classList.add('selected');
+      btn.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        currentDrawColor = c;
+        drawCtx.strokeStyle = c;
+        drawColorsEl.querySelectorAll('.draw-color-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        playPop();
+      });
+      drawColorsEl.appendChild(btn);
+    });
+  }
+
+  function getCanvasPos(e){
+    var rect = drawCanvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  drawCanvas.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    try{ drawCanvas.setPointerCapture(e.pointerId); }catch(err){}
+    unlockAudio();
+    isDrawing = true;
+    var p = getCanvasPos(e);
+    lastDrawX = p.x; lastDrawY = p.y;
+    drawCtx.beginPath();
+    drawCtx.arc(p.x, p.y, drawCtx.lineWidth/2, 0, Math.PI*2);
+    drawCtx.fillStyle = currentDrawColor;
+    drawCtx.fill();
+  });
+  drawCanvas.addEventListener('pointermove', function(e){
+    if(!isDrawing) return;
+    var p = getCanvasPos(e);
+    drawCtx.beginPath();
+    drawCtx.moveTo(lastDrawX, lastDrawY);
+    drawCtx.lineTo(p.x, p.y);
+    drawCtx.strokeStyle = currentDrawColor;
+    drawCtx.stroke();
+    lastDrawX = p.x; lastDrawY = p.y;
+  });
+  function stopDrawing(){ isDrawing = false; }
+  drawCanvas.addEventListener('pointerup', stopDrawing);
+  drawCanvas.addEventListener('pointercancel', stopDrawing);
+
+  document.getElementById('drawClearBtn').addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    unlockAudio();
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    playPop();
+    speak('ลบภาพแล้วนะ วาดใหม่ได้เลย!');
+  });
+
+  window.addEventListener('resize', resizeDrawCanvas);
+
+  buildDrawColorButtons();
+  resizeDrawCanvas();
+  ensureDrawResizeObserver();
+  requestAnimationFrame(function(){
+    requestAnimationFrame(resizeDrawCanvas);
+  });
+  say('วาดภาพอิสระได้เลยนะ สนุกๆ!');
+})();
+</script>
+</body>
+</html>

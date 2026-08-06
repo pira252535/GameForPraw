@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>หน้าเลข 1-10 🔟 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">แตะตัวเลขเพื่อฟังเสียงนะ!</div>
+
+  <div class="learn-stage" id="learnStage">
+    <div class="learn-grid" id="learnGrid"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+  var learnGrid = document.getElementById('learnGrid');
+
+  var items = [];
+  for(var n=1; n<=10; n++){ items.push({ display:String(n), speakText:THAI_WORDS[n] }); }
+
+  items.forEach(function(item, i){
+    var tile = document.createElement('button');
+    tile.className = 'learn-tile';
+    tile.textContent = item.display;
+    tile.style.animationDelay = (Math.min(i,24) * 0.02) + 's';
+    tile.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      unlockAudio();
+      tile.classList.add('active');
+      playPop();
+      speak(item.speakText);
+      setTimeout(function(){ tile.classList.remove('active'); }, 350);
+    });
+    learnGrid.appendChild(tile);
+  });
+
+  say('แตะตัวเลขเพื่อฟังเสียงนะ!');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>หาสี 🎨 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ตามหาสีที่กำหนดให้เจอนะ!</div>
+
+  <div class="count-stage" id="colorStage">
+    <div class="count-objects" id="colorObjects"></div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var targetColorObj = null;
+  var colorObjects = document.getElementById('colorObjects');
+  var celebrate = document.getElementById('celebrate');
+
+  function buildColorTiles(){
+    colorObjects.innerHTML = '';
+    var shuffledPool = shuffle(COLORS);
+    var tileCount = Math.min(6, COLORS.length);
+    var tiles = shuffle(shuffledPool.slice(0, tileCount));
+    targetColorObj = shuffledPool[0];
+    var slots = shuffle(SLOTS).slice(0, tiles.length);
+
+    tiles.forEach(function(colorObj, i){
+      var pos = slots[i] || SLOTS[i % SLOTS.length];
+      var tile = document.createElement('div');
+      tile.className = 'color-tile';
+      tile.style.left = pos[0] + '%';
+      tile.style.top = pos[1] + '%';
+      tile.style.background = colorObj.hex;
+      tile.style.animationDelay = (i * 0.06) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(tile.classList.contains('correct')) return;
+        if(colorObj.name === targetColorObj.name){
+          tile.classList.add('correct');
+          playPop();
+          setTimeout(winLevel, 350);
+        }else{
+          tile.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ tile.classList.remove('shake'); }, 500);
+        }
+      });
+      colorObjects.appendChild(tile);
+    });
+  }
+
+  function startColorLevel(){
+    buildColorTiles();
+    say('หาสี' + targetColorObj.name + 'ให้เจอ!');
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startColorLevel();
+  });
+
+  startColorLevel();
+})();
+</script>
+</body>
+</html>

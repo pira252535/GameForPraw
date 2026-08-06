@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ผสมคำ 🧩 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ลองต่อคำดูสิ!</div>
+
+  <div class="word-stage" id="wordStage">
+    <div class="word-picture" id="wordPicture">🐟</div>
+    <div class="word-slots" id="wordSlots">
+      <div class="word-slot" data-slot="0"></div>
+      <div class="word-slot" data-slot="1"></div>
+    </div>
+    <div class="word-tray" id="wordTray"></div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var wordTargetObj = null;
+  var wordSlotsFilled = [null, null];
+  var wordPicture = document.getElementById('wordPicture');
+  var wordSlotsEl = document.getElementById('wordSlots');
+  var wordTray = document.getElementById('wordTray');
+  var celebrate = document.getElementById('celebrate');
+
+  function renderWordTiles(){
+    var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+    slotEls.forEach(function(s){ s.textContent = ''; s.classList.remove('filled'); });
+    wordSlotsFilled = [null, null];
+    wordTray.innerHTML = '';
+    var shuffledParts = shuffle(wordTargetObj.parts.slice());
+    shuffledParts.forEach(function(partText, i){
+      var tile = document.createElement('div');
+      tile.className = 'word-tile';
+      tile.textContent = partText;
+      tile.style.animationDelay = (i*0.07) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(tile.classList.contains('used')) return;
+        unlockAudio();
+        placeWordTile(tile, partText);
+      });
+      wordTray.appendChild(tile);
+    });
+  }
+
+  function placeWordTile(tile, partText){
+    var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+    var emptyIdx = wordSlotsFilled.indexOf(null);
+    if(emptyIdx === -1) return;
+    wordSlotsFilled[emptyIdx] = partText;
+    slotEls[emptyIdx].textContent = partText;
+    slotEls[emptyIdx].classList.add('filled');
+    tile.classList.add('used');
+    playPop();
+    if(wordSlotsFilled.indexOf(null) === -1){
+      setTimeout(checkWordResult, 350);
+    }
+  }
+
+  function checkWordResult(){
+    var built = wordSlotsFilled.join('');
+    if(built === wordTargetObj.word){
+      winLevel();
+    }else{
+      var slotEls = wordSlotsEl.querySelectorAll('.word-slot');
+      slotEls.forEach(function(s){ s.classList.add('shake'); });
+      playBuzz();
+      speak('ลองสลับที่ดูใหม่นะ!');
+      setTimeout(function(){
+        slotEls.forEach(function(s){ s.classList.remove('shake'); });
+        renderWordTiles();
+      }, 700);
+    }
+  }
+
+  function startWordLevel(){
+    wordTargetObj = WORDS[randInt(0, WORDS.length-1)];
+    wordPicture.textContent = wordTargetObj.emoji;
+    renderWordTiles();
+    say('ลองต่อคำว่า ' + wordTargetObj.word + ' ดูสิ!');
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startWordLevel();
+  });
+
+  startWordLevel();
+})();
+</script>
+</body>
+</html>

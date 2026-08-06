@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>เลี้ยงหมา 🐶 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="counterBadge">
+      <span id="badgeIcon">🍖</span><span class="num-fed" id="fedCountEl">0</span> / <span class="num-target" id="targetCountEl">3</span>
+    </div>
+    <div class="timer-badge" id="timerBadge">⏱️ <span id="timerNum">20</span></div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ป้อนอาหารให้น้องหมากันเถอะ!</div>
+
+  <div class="pet-stage" id="feedStage">
+    <div class="pet-wrap">
+      <svg class="pet-svg pet" id="petSvg" viewBox="0 0 340 300" xmlns="http://www.w3.org/2000/svg">
+        <ellipse class="tail" cx="235" cy="195" rx="16" ry="34" fill="var(--dog-body-dark)"/>
+        <ellipse cx="170" cy="255" rx="120" ry="70" fill="var(--dog-body)"/>
+        <ellipse cx="70" cy="110" rx="34" ry="52" fill="var(--dog-ear)" transform="rotate(-18 70 110)"/>
+        <ellipse cx="270" cy="110" rx="34" ry="52" fill="var(--dog-ear)" transform="rotate(18 270 110)"/>
+        <circle cx="170" cy="150" r="105" fill="var(--dog-body)"/>
+        <ellipse cx="115" cy="175" rx="38" ry="30" fill="var(--dog-body-dark)" opacity="0.55"/>
+        <ellipse cx="170" cy="195" rx="52" ry="38" fill="#FFF4E1"/>
+        <g class="eye left">
+          <circle cx="132" cy="140" r="13" fill="#4A3B33"/>
+          <circle cx="136" cy="135" r="4" fill="#fff"/>
+        </g>
+        <g class="eye right">
+          <circle cx="208" cy="140" r="13" fill="#4A3B33"/>
+          <circle cx="212" cy="135" r="4" fill="#fff"/>
+        </g>
+        <ellipse cx="108" cy="188" rx="14" ry="9" fill="#FF9EBB" opacity="0.55"/>
+        <ellipse cx="232" cy="188" rx="14" ry="9" fill="#FF9EBB" opacity="0.55"/>
+        <ellipse cx="170" cy="182" rx="14" ry="10" fill="var(--dog-nose)"/>
+        <g id="mouthClosed">
+          <path d="M 140 205 Q 170 222 200 205" stroke="#4A3B33" stroke-width="5" fill="none" stroke-linecap="round"/>
+        </g>
+        <g id="mouthOpen">
+          <ellipse cx="170" cy="208" rx="34" ry="26" fill="#8A3B4E"/>
+          <ellipse cx="170" cy="220" rx="22" ry="10" fill="#FF7C99"/>
+        </g>
+      </svg>
+      <div class="mouth-target" id="mouthTarget"></div>
+    </div>
+  </div>
+
+  <div class="shelf-wrap" id="shelfWrap">
+    <div class="shelf" id="shelf"></div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<!-- FAIL / RETRY OVERLAY (timeout or overfeed) -->
+<div class="celebrate" id="failOverlay">
+  <h2 id="failText">ลองใหม่นะ! 😊</h2>
+  <button class="big-btn" id="retryBtn">ลองอีกครั้ง ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var target = 3, fed = 0, foodType = 'bone';
+  var eatRadius = 85, nearRadius = 130;
+  var feedEnded = false;
+  var feedTimerInterval = null;
+  var feedTimeLeft = 20;
+  var FEED_TIME_LIMIT = 20;
+
+  var timerBadge = document.getElementById('timerBadge');
+  var timerNum = document.getElementById('timerNum');
+
+  var badgeIcon = document.getElementById('badgeIcon');
+  var fedCountEl = document.getElementById('fedCountEl');
+  var targetCountEl = document.getElementById('targetCountEl');
+  var celebrate = document.getElementById('celebrate');
+  var failOverlay = document.getElementById('failOverlay');
+
+  var petSvg = document.getElementById('petSvg');
+  var mouthTarget = document.getElementById('mouthTarget');
+  var shelf = document.getElementById('shelf');
+  var nearSet = {};
+
+  function clearFeedTimer(){
+    if(feedTimerInterval){ clearInterval(feedTimerInterval); feedTimerInterval = null; }
+  }
+  function updateTimerUI(){
+    timerNum.textContent = feedTimeLeft;
+    timerBadge.classList.toggle('low', feedTimeLeft <= 5);
+  }
+  function startFeedTimer(){
+    clearFeedTimer();
+    feedTimeLeft = FEED_TIME_LIMIT;
+    updateTimerUI();
+    feedTimerInterval = setInterval(function(){
+      feedTimeLeft--;
+      updateTimerUI();
+      if(feedTimeLeft <= 0){
+        clearFeedTimer();
+        if(!feedEnded){
+          feedEnded = true;
+          disableShelf();
+          revealFeedResult();
+        }
+      }
+    }, 1000);
+  }
+  function revealFeedResult(){
+    if(fed === target){ winLevel(); }
+    else if(fed > target){ failLevel('over'); }
+    else{ failLevel('timeout'); }
+  }
+  function failLevel(reason){
+    var msg = reason === 'timeout'
+      ? 'หมดเวลาแล้วนะ ป้อนไม่ครบจำนวน ลองใหม่อีกครั้งนะ!'
+      : 'หมดเวลาแล้วนะ ป้อนเกินจำนวนไปนิดนึงนะ ลองใหม่อีกครั้งนะ!';
+    showFailOverlay(msg);
+  }
+
+  function updateMouthClass(){
+    petSvg.classList.toggle('mouth-open', Object.keys(nearSet).length > 0);
+  }
+  function mouthCenter(){
+    var r = mouthTarget.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  function buildShelf(){
+    shelf.innerHTML = '';
+    for(var i=0;i<10;i++){
+      (function(i){
+        var wrap = document.createElement('div');
+        wrap.className = 'food food-pop';
+        wrap.innerHTML = FOOD_SVG[foodType];
+        wrap.style.animationDelay = (i*0.05)+'s';
+        attachDrag(wrap);
+        shelf.appendChild(wrap);
+      })(i);
+    }
+  }
+  function disableShelf(){
+    var items = shelf.querySelectorAll('.food');
+    items.forEach(function(el){ el.style.pointerEvents = 'none'; });
+  }
+
+  function attachDrag(el){
+    var startX=0, startY=0, dragging=false;
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      el.style.transition = 'none';
+      el.classList.add('drag-active');
+      unlockAudio();
+    });
+    el.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      el.style.transform = 'translate('+dx+'px,'+dy+'px) scale(1.18)';
+      var mc = mouthCenter();
+      var d = dist(e.clientX, e.clientY, mc.x, mc.y);
+      if(d < nearRadius){ nearSet[e.pointerId] = true; } else { delete nearSet[e.pointerId]; }
+      updateMouthClass();
+    });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      el.classList.remove('drag-active');
+      delete nearSet[e.pointerId];
+      updateMouthClass();
+      var mc = mouthCenter();
+      var d = dist(e.clientX, e.clientY, mc.x, mc.y);
+      if(d < eatRadius){ eatItem(el); }
+      else{
+        el.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1)';
+        el.style.transform = 'translate(0,0) scale(1)';
+      }
+    }
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+  }
+
+  function eatItem(el){
+    if(feedEnded) return;
+    var mc = mouthCenter();
+    var r = el.getBoundingClientRect();
+    var elCenterX = r.left + r.width/2, elCenterY = r.top + r.height/2;
+    var moveX = mc.x - elCenterX, moveY = mc.y - elCenterY;
+    var m = /translate\(([-\d.]+)px,([-\d.]+)px\)/.exec(el.style.transform || '');
+    var curDx = m ? parseFloat(m[1]) : 0, curDy = m ? parseFloat(m[2]) : 0;
+    el.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
+    el.style.transform = 'translate('+(curDx+moveX)+'px,'+(curDy+moveY)+'px) scale(.3)';
+    el.style.opacity = '0';
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 190);
+
+    chew();
+    playPop();
+    fed++;
+    fedCountEl.textContent = fed;
+    speak(THAI_WORDS[fed] || String(fed));
+    starBurst(mc.x, mc.y);
+  }
+
+  function chew(){
+    petSvg.classList.remove('chew');
+    void petSvg.offsetWidth;
+    petSvg.classList.add('chew');
+    setTimeout(function(){ petSvg.classList.remove('chew'); }, 400);
+  }
+
+  function startFeedLevel(){
+    target = randInt(1,9);
+    fed = 0;
+    feedEnded = false;
+    foodType = Math.random() < 0.5 ? 'bone' : 'apple';
+    badgeIcon.textContent = foodType === 'bone' ? '🍖' : '🍎';
+    fedCountEl.textContent = fed;
+    targetCountEl.textContent = target;
+    buildShelf();
+    startFeedTimer();
+    say('ป้อน' + FOOD_LABEL[foodType] + 'ให้น้องหมา ' + target + ' ชิ้นให้ทันเวลานะ!');
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startFeedLevel();
+  });
+  document.getElementById('retryBtn').addEventListener('click', function(){
+    failOverlay.classList.remove('show');
+    startFeedLevel();
+  });
+
+  startFeedLevel();
+})();
+</script>
+</body>
+</html>

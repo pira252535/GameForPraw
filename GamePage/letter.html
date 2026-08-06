@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ค้นหาตัวอักษร 🔤 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="letter-target-badge" id="letterTargetBadge">ก</div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">เลือกภาษาที่อยากเล่นก่อนนะ!</div>
+
+  <div class="count-stage" id="letterStage">
+    <div class="count-objects" id="letterObjects"></div>
+  </div>
+</div>
+
+<!-- LANGUAGE CHOICE OVERLAY (shown first) -->
+<div class="overlay" id="langOverlay">
+  <h1>เลือกภาษา 🔤</h1>
+  <p>อยากหาตัวอักษรภาษาอะไรดี?</p>
+  <div class="lang-cards">
+    <button class="lang-card" id="langThaiBtn">
+      <span class="icon">🇹🇭</span>
+      <span class="title">ภาษาไทย ก-ฮ</span>
+    </button>
+    <button class="lang-card" id="langEnglishBtn">
+      <span class="icon">🇬🇧</span>
+      <span class="title">English A-Z</span>
+    </button>
+  </div>
+  <button class="back-link" id="langBackBtn">‹ กลับไปเลือกเกม</button>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var TILE_COLORS = ['#8C7CF0','#FF9EBB','#FFC65C','#5CD3C0','#7BD389','#7FA8E8'];
+
+  var letterLang = 'thai';
+  var targetLetterObj = null;
+  var letterObjects = document.getElementById('letterObjects');
+  var letterTargetBadge = document.getElementById('letterTargetBadge');
+  var langOverlay = document.getElementById('langOverlay');
+  var celebrate = document.getElementById('celebrate');
+
+  function buildLetterTiles(){
+    letterObjects.innerHTML = '';
+    var pool = letterLang === 'thai' ? THAI_LETTERS : ENGLISH_LETTERS;
+    var shuffledPool = shuffle(pool);
+    var tileCount = Math.min(6, pool.length);
+    var tiles = shuffle(shuffledPool.slice(0, tileCount));
+    targetLetterObj = shuffledPool[0];
+    var slots = shuffle(SLOTS).slice(0, tiles.length);
+
+    tiles.forEach(function(letterObj, i){
+      var pos = slots[i] || SLOTS[i % SLOTS.length];
+      var tile = document.createElement('div');
+      tile.className = 'letter-tile';
+      tile.textContent = letterObj.ch;
+      tile.style.left = pos[0] + '%';
+      tile.style.top = pos[1] + '%';
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.style.animationDelay = (i * 0.06) + 's';
+      tile.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        unlockAudio();
+        if(tile.classList.contains('correct')) return;
+        if(letterObj.ch === targetLetterObj.ch){
+          tile.classList.add('correct');
+          playPop();
+          setTimeout(winLevel, 350);
+        }else{
+          tile.classList.add('shake');
+          playBuzz();
+          speak('ลองใหม่นะ');
+          setTimeout(function(){ tile.classList.remove('shake'); }, 500);
+        }
+      });
+      letterObjects.appendChild(tile);
+    });
+
+    letterTargetBadge.textContent = targetLetterObj.ch;
+  }
+
+  function startLetterLevel(){
+    buildLetterTiles();
+    say('ตามหาตัวอักษร ' + targetLetterObj.read + ' ให้เจอ!');
+  }
+
+  function startWithLang(lang){
+    letterLang = lang;
+    langOverlay.style.display = 'none';
+    unlockAudio();
+    playPop();
+    startLetterLevel();
+  }
+
+  document.getElementById('langThaiBtn').addEventListener('click', function(){ startWithLang('thai'); });
+  document.getElementById('langEnglishBtn').addEventListener('click', function(){ startWithLang('english'); });
+  document.getElementById('langBackBtn').addEventListener('click', goHome);
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startLetterLevel();
+  });
+})();
+</script>
+</body>
+</html>
