@@ -122,6 +122,34 @@ var WORDS = [
 var SIMON_NOTES = [523.25, 659.25, 783.99, 987.77]; // C5 E5 G5 B5
 var DRAW_COLORS = ['#3A3A3A','#FF5A5A','#FF9F45','#FFD93D','#6BCB77','#4D96FF','#B98CE0','#FF8FB1','#8B5E3C'];
 
+/* ---- Sorting game (แยกประเภท/เก็บของเข้าที่) ---- */
+var SORT_SETS = [
+  { a:{ label:'ผลไม้', icon:'🍎', items:['🍎','🍌','🍇','🍊','🍓','🍑'] },
+    b:{ label:'สัตว์', icon:'🐰', items:['🐶','🐱','🐰','🐸','🐷','🐵'] } },
+  { a:{ label:'ยานพาหนะ', icon:'🚗', items:['🚗','🚌','🚲','✈️','🚢','🚓'] },
+    b:{ label:'ของกิน', icon:'🍕', items:['🍕','🍔','🍩','🍦','🧁','🍟'] } },
+  { a:{ label:'ของเล่น', icon:'🧸', items:['🧸','🪀','🎈','🎁','🪁','🧩'] },
+    b:{ label:'เครื่องดนตรี', icon:'🥁', items:['🥁','🎸','🎺','🎷','🎹','🎻'] } }
+];
+
+/* ---- Pre-writing trace game (ลากเส้นตามรอย) ---- */
+/* Each shape is an ordered list of checkpoints (percent coordinates) to trace through in sequence. */
+var TRACE_SHAPES = [
+  { name:'line', points:[[14,50],[28.4,50],[42.8,50],[57.2,50],[71.6,50],[86,50]] },
+  { name:'vertical', points:[[50,14],[50,28.4],[50,42.8],[50,57.2],[50,71.6],[50,86]] },
+  { name:'wave', points:[[14,62],[26,38],[38,62],[50,38],[62,62],[74,38],[86,55]] },
+  { name:'zigzag', points:[[14,72],[30,30],[46,72],[62,30],[78,72],[86,50]] },
+  { name:'circle', points:(function(){
+      var pts=[]; var n=9;
+      for(var i=0;i<n;i++){
+        var a = -Math.PI/2 + (i/(n-1)) * Math.PI*1.85;
+        pts.push([50 + Math.cos(a)*30, 50 + Math.sin(a)*30]);
+      }
+      return pts;
+    })() }
+];
+
+
 /* Slot positions (percent left/top) for scattering up to 10 items without heavy overlap */
 var SLOTS = [
   [10,18],[28,14],[46,22],[64,15],[82,20],

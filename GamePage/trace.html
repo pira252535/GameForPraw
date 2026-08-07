@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ลากเส้นตามรอย ✏️ - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ลากนิ้วตามจุดให้ครบทุกจุดนะ!</div>
+
+  <div class="trace-stage" id="traceStage">
+    <div class="trace-canvas-wrap" id="traceWrap">
+      <canvas id="traceCanvas"></canvas>
+      <canvas id="traceInkCanvas"></canvas>
+      <div id="traceCheckpoints"></div>
+    </div>
+    <div class="trace-toolbar">
+      <button class="big-btn" id="traceNextBtn" style="font-size:clamp(17px,3.4vw,22px); padding:14px 30px;">รูปถัดไป ➜</button>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var wrap = document.getElementById('traceWrap');
+  var guideCanvas = document.getElementById('traceCanvas');
+  var guideCtx = guideCanvas.getContext('2d');
+  var inkCanvas = document.getElementById('traceInkCanvas');
+  var inkCtx = inkCanvas.getContext('2d');
+  var checkpointsEl = document.getElementById('traceCheckpoints');
+  var celebrate = document.getElementById('celebrate');
+
+  var currentShape = null;
+  var checkpointEls = [];
+  var nextIndex = 0;
+  var isDrawing = false;
+  var lastInkX = 0, lastInkY = 0;
+  var reachRadiusPx = 46;
+
+  function resizeCanvases(){
+    var rect = wrap.getBoundingClientRect();
+    var w = rect.width, h = rect.height;
+    if(w <= 0 || h <= 0) return;
+    var dpr = window.devicePixelRatio || 1;
+    [guideCanvas, inkCanvas].forEach(function(c){
+      c.width = Math.round(w*dpr);
+      c.height = Math.round(h*dpr);
+      c.style.width = w+'px';
+      c.style.height = h+'px';
+    });
+    guideCtx.setTransform(1,0,0,1,0,0); guideCtx.scale(dpr,dpr);
+    inkCtx.setTransform(1,0,0,1,0,0); inkCtx.scale(dpr,dpr);
+    inkCtx.lineCap = 'round'; inkCtx.lineJoin = 'round'; inkCtx.lineWidth = 12;
+    inkCtx.strokeStyle = '#8C7CF0';
+    drawGuide();
+    positionCheckpoints();
+  }
+
+  function pctToPx(pt){
+    var rect = wrap.getBoundingClientRect();
+    return { x: rect.width * pt[0]/100, y: rect.height * pt[1]/100 };
+  }
+
+  function drawGuide(){
+    if(!currentShape) return;
+    var rect = wrap.getBoundingClientRect();
+    guideCtx.clearRect(0,0,rect.width,rect.height);
+    guideCtx.setLineDash([10,10]);
+    guideCtx.lineWidth = 6;
+    guideCtx.strokeStyle = '#E3DFF5';
+    guideCtx.lineCap = 'round';
+    guideCtx.beginPath();
+    currentShape.points.forEach(function(pt, i){
+      var p = pctToPx(pt);
+      if(i===0) guideCtx.moveTo(p.x,p.y); else guideCtx.lineTo(p.x,p.y);
+    });
+    guideCtx.stroke();
+    guideCtx.setLineDash([]);
+  }
+
+  function positionCheckpoints(){
+    checkpointEls.forEach(function(el, i){
+      var p = pctToPx(currentShape.points[i]);
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+    });
+  }
+
+  function buildCheckpoints(){
+    checkpointsEl.innerHTML = '';
+    checkpointEls = currentShape.points.map(function(pt, i){
+      var el = document.createElement('div');
+      el.className = 'trace-checkpoint' + (i===0 ? ' start' : '');
+      checkpointsEl.appendChild(el);
+      return el;
+    });
+    positionCheckpoints();
+  }
+
+  function startTraceLevel(){
+    currentShape = TRACE_SHAPES[randInt(0, TRACE_SHAPES.length-1)];
+    nextIndex = 0;
+    buildCheckpoints();
+    resizeCanvases();
+    var rect = wrap.getBoundingClientRect();
+    inkCtx.clearRect(0,0,rect.width,rect.height);
+    say('ลากนิ้วตามจุดสีม่วงให้ครบทุกจุดนะ เริ่มจากจุดแรกเลย!');
+  }
+
+  function checkProgress(px, py){
+    if(nextIndex >= checkpointEls.length) return;
+    var target = pctToPx(currentShape.points[nextIndex]);
+    if(dist(px,py,target.x,target.y) < reachRadiusPx){
+      checkpointEls[nextIndex].classList.add('reached');
+      playPop();
+      var wrapRect = wrap.getBoundingClientRect();
+      starBurst(wrapRect.left+target.x, wrapRect.top+target.y);
+      nextIndex++;
+      if(nextIndex >= checkpointEls.length){
+        setTimeout(winLevel, 400);
+      }
+    }
+  }
+
+  function getLocalPos(e){
+    var rect = wrap.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  inkCanvas.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    try{ inkCanvas.setPointerCapture(e.pointerId); }catch(err){}
+    unlockAudio();
+    isDrawing = true;
+    var p = getLocalPos(e);
+    lastInkX = p.x; lastInkY = p.y;
+    inkCtx.beginPath();
+    inkCtx.arc(p.x, p.y, 6, 0, Math.PI*2);
+    inkCtx.fillStyle = '#8C7CF0';
+    inkCtx.fill();
+    checkProgress(p.x, p.y);
+  });
+  inkCanvas.addEventListener('pointermove', function(e){
+    if(!isDrawing) return;
+    var p = getLocalPos(e);
+    inkCtx.beginPath();
+    inkCtx.moveTo(lastInkX, lastInkY);
+    inkCtx.lineTo(p.x, p.y);
+    inkCtx.stroke();
+    lastInkX = p.x; lastInkY = p.y;
+    checkProgress(p.x, p.y);
+  });
+  function stopInk(){ isDrawing = false; }
+  inkCanvas.addEventListener('pointerup', stopInk);
+  inkCanvas.addEventListener('pointercancel', stopInk);
+
+  window.addEventListener('resize', resizeCanvases);
+
+  document.getElementById('traceNextBtn').addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    unlockAudio();
+    playPop();
+    startTraceLevel();
+  });
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    startTraceLevel();
+  });
+
+  startTraceLevel();
+  requestAnimationFrame(function(){ requestAnimationFrame(resizeCanvases); });
+})();
+</script>
+</body>
+</html>

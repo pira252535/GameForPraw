@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ป้อนฟองสบู่ 🫧 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="counterBadge">
+      <span>🫧</span><span class="num-fed" id="poppedCountEl">0</span>
+    </div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">แตะฟองสบู่ให้แตกเลย!</div>
+
+  <div class="bubble-stage" id="bubbleStage"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var bubbleStage = document.getElementById('bubbleStage');
+  var poppedCountEl = document.getElementById('poppedCountEl');
+  var poppedCount = 0;
+  var spawnTimer = null;
+
+  var BUBBLE_NOTES = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77];
+
+  function spawnBubble(){
+    var size = randInt(46, 100);
+    var el = document.createElement('div');
+    el.className = 'bubble';
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.left = randInt(4, 90) + '%';
+    var duration = (randInt(45,75) / 10);
+    el.style.animationDuration = duration + 's';
+    el.style.setProperty('--wobble', (randInt(-40,40)) + 'px');
+
+    var popped = false;
+    function pop(e){
+      if(popped) return;
+      popped = true;
+      if(e) e.preventDefault();
+      unlockAudio();
+      el.classList.add('popped');
+      var note = BUBBLE_NOTES[randInt(0, BUBBLE_NOTES.length-1)];
+      tone(note, 0.16, 'sine', 0);
+      var r = el.getBoundingClientRect();
+      starBurst(r.left + r.width/2, r.top + r.height/2);
+      poppedCount++;
+      poppedCountEl.textContent = poppedCount;
+      if(poppedCount % 10 === 0){
+        playCheer();
+        confettiBurst();
+        speak('เก่งมาก! แตะฟองสบู่ไปแล้ว ' + poppedCount + ' ฟองนะ!');
+      }
+      setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 250);
+    }
+
+    el.addEventListener('pointerdown', pop);
+    el.addEventListener('animationend', function(){
+      if(!popped && el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    bubbleStage.appendChild(el);
+  }
+
+  function startSpawning(){
+    if(spawnTimer) clearInterval(spawnTimer);
+    spawnTimer = setInterval(function(){
+      spawnBubble();
+      if(Math.random() < 0.35) setTimeout(spawnBubble, 250);
+    }, 900);
+    spawnBubble();
+  }
+
+  say('แตะฟองสบู่ให้แตกเลย เพลินๆ นะ!');
+  startSpawning();
+})();
+</script>
+</body>
+</html>

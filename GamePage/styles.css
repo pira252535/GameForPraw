@@ -377,6 +377,9 @@
   .mode-card.simon{ border-color:#FFE3B0; }
   .mode-card.word{ border-color:#D8E8FF; }
   .mode-card.learn{ border-color:#E0D4FF; }
+  .mode-card.sort{ border-color:#FFD8B0; }
+  .mode-card.trace{ border-color:#C9E4FF; }
+  .mode-card.bubble{ border-color:#CFF3FF; }
 
   .big-btn{
     font-family:inherit; font-weight:800; font-size:clamp(22px,4.4vw,32px);
@@ -403,6 +406,80 @@
 
   .star-burst{ position:fixed; z-index:40; pointer-events:none; font-size:26px; animation:starOut .6s ease forwards; }
   @keyframes starOut{ 0%{ transform:translate(0,0) scale(.4); opacity:1 } 100%{ transform:translate(var(--tx),var(--ty)) scale(1.3); opacity:0 } }
+
+  /* ---------- SORTING GAME (แยกประเภท) ---------- */
+  .sort-stage{
+    flex:1; width:100%; display:flex; flex-direction:column; min-height:0; position:relative;
+  }
+  .sort-items{ position:relative; flex:1; width:100%; min-height:0; }
+  .sort-item{
+    position:absolute; font-size:min(13vw,58px); line-height:1;
+    transform:translate(-50%,-50%);
+    filter:drop-shadow(0 6px 4px rgba(0,0,0,.15));
+    animation:itemPop .35s ease both; cursor:grab; touch-action:none;
+    user-select:none; will-change:transform;
+  }
+  .sort-item.drag-active{ cursor:grabbing; z-index:999; filter:drop-shadow(0 12px 8px rgba(0,0,0,.22)); }
+  .sort-baskets{
+    display:flex; justify-content:center; gap:min(5vw,30px);
+    padding:10px 14px calc(18px + env(safe-area-inset-bottom));
+  }
+  .sort-basket{
+    flex:1; max-width:220px; min-width:120px; border-radius:28px;
+    border:5px dashed var(--panel-border); background:rgba(255,255,255,.7);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:14px 8px; min-height:min(24vw,120px); transition:background .15s, transform .15s;
+  }
+  .sort-basket .basket-icon{ font-size:clamp(30px,7vw,48px); }
+  .sort-basket .basket-label{ font-size:clamp(14px,2.6vw,19px); font-weight:800; color:var(--purple-dark); text-align:center; }
+  .sort-basket.hover{ background:rgba(255,246,214,.9); border-style:solid; transform:scale(1.04); }
+
+  /* ---------- PRE-WRITING TRACE GAME (ลากเส้นตามรอย) ---------- */
+  .trace-stage{
+    flex:1; width:100%; display:flex; flex-direction:column; min-height:0; position:relative; padding:6px 10px;
+  }
+  .trace-canvas-wrap{
+    flex:1; width:100%; min-height:0; border-radius:28px; overflow:hidden;
+    background:#fff; box-shadow:0 6px 0 rgba(0,0,0,.08); position:relative; touch-action:none;
+  }
+  #traceCanvas, #traceInkCanvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  #traceInkCanvas{ cursor:crosshair; }
+  .trace-checkpoint{
+    position:absolute; width:min(7vw,32px); height:min(7vw,32px); border-radius:50%;
+    background:#fff; border:4px solid #D9D5C9; transform:translate(-50%,-50%);
+    transition:background .15s, border-color .15s, transform .15s; pointer-events:none;
+  }
+  .trace-checkpoint.reached{
+    background:linear-gradient(180deg,#8FE0A8,#5FCB80); border-color:#5FCB80;
+    transform:translate(-50%,-50%) scale(1.2);
+  }
+  .trace-checkpoint.start{ border-color:var(--purple); }
+  .trace-toolbar{ display:flex; justify-content:center; padding:10px 6px calc(14px + env(safe-area-inset-bottom)); }
+
+  /* ---------- BUBBLE POP GAME (ป้อนอากาศ/ฟองสบู่) ---------- */
+  .bubble-stage{
+    flex:1; width:100%; min-height:0; position:relative; overflow:hidden;
+  }
+  .bubble{
+    position:absolute; bottom:-10%; border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.95), rgba(255,255,255,.25) 40%, rgba(150,220,255,.35) 75%, rgba(120,200,255,.45));
+    border:2px solid rgba(255,255,255,.7);
+    box-shadow:0 0 12px rgba(150,210,255,.5) inset, 0 4px 10px rgba(0,0,0,.06);
+    cursor:pointer; touch-action:manipulation; will-change:transform, opacity;
+    animation:bubbleFloat linear forwards;
+  }
+  @keyframes bubbleFloat{
+    0%{ transform:translate(0,0); opacity:.95; }
+    50%{ transform:translate(var(--wobble,14px), -55vh); }
+    100%{ transform:translate(0, -115vh); opacity:.85; }
+  }
+  .bubble.popped{
+    animation:none !important;
+    transform:scale(1.4) !important;
+    opacity:0 !important;
+    transition:transform .22s ease, opacity .22s ease;
+    pointer-events:none;
+  }
 
   @media (max-width:480px){
     .shelf{ gap:14px; }

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>แยกประเภท 🧺 - เลี้ยงสัตว์แสนสนุก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game">
+  <div class="ground"></div>
+
+  <div class="topbar">
+    <button class="home-btn" id="homeBtn" title="กลับเมนู">🏠</button>
+    <div class="counter-badge" id="counterBadge">
+      <span>🧺</span><span class="num-fed" id="sortedCountEl">0</span> / <span class="num-target" id="sortTotalEl">6</span>
+    </div>
+    <button class="replay-btn" id="replayBtn" title="ฟังอีกครั้ง">🔊</button>
+  </div>
+
+  <div class="speech-bubble" id="instructionText">ลากของไปใส่กล่องให้ถูกหมวดนะ!</div>
+
+  <div class="sort-stage" id="sortStage">
+    <div class="sort-items" id="sortItems"></div>
+    <div class="sort-baskets" id="sortBaskets">
+      <div class="sort-basket" id="basketA" data-cat="a">
+        <span class="basket-icon" id="basketIconA">🍎</span>
+        <span class="basket-label" id="basketLabelA">ผลไม้</span>
+      </div>
+      <div class="sort-basket" id="basketB" data-cat="b">
+        <span class="basket-icon" id="basketIconB">🐰</span>
+        <span class="basket-label" id="basketLabelB">สัตว์</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION OVERLAY -->
+<div class="celebrate" id="celebrate">
+  <h2 id="celebrateText">เก่งมาก! 🎉</h2>
+  <button class="big-btn" id="nextBtn">ด่านต่อไป ➜</button>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var sortedCountEl = document.getElementById('sortedCountEl');
+  var sortTotalEl = document.getElementById('sortTotalEl');
+  var celebrate = document.getElementById('celebrate');
+  var sortItems = document.getElementById('sortItems');
+  var basketA = document.getElementById('basketA');
+  var basketB = document.getElementById('basketB');
+  var basketIconA = document.getElementById('basketIconA');
+  var basketIconB = document.getElementById('basketIconB');
+  var basketLabelA = document.getElementById('basketLabelA');
+  var basketLabelB = document.getElementById('basketLabelB');
+
+  var currentSet = null;
+  var sortedCount = 0;
+  var sortTotal = 0;
+
+  function basketCenter(el){
+    var r = el.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  function buildRound(){
+    currentSet = SORT_SETS[randInt(0, SORT_SETS.length-1)];
+    basketIconA.textContent = currentSet.a.icon;
+    basketLabelA.textContent = currentSet.a.label;
+    basketIconB.textContent = currentSet.b.icon;
+    basketLabelB.textContent = currentSet.b.label;
+
+    var itemsA = shuffle(currentSet.a.items).slice(0,3).map(function(e){ return { emoji:e, cat:'a' }; });
+    var itemsB = shuffle(currentSet.b.items).slice(0,3).map(function(e){ return { emoji:e, cat:'b' }; });
+    var allItems = shuffle(itemsA.concat(itemsB));
+    sortTotal = allItems.length;
+    sortedCount = 0;
+    sortedCountEl.textContent = sortedCount;
+    sortTotalEl.textContent = sortTotal;
+
+    sortItems.innerHTML = '';
+    var slots = shuffle(SLOTS).slice(0, allItems.length);
+    allItems.forEach(function(item, i){
+      var pos = slots[i] || SLOTS[i % SLOTS.length];
+      var el = document.createElement('div');
+      el.className = 'sort-item';
+      el.textContent = item.emoji;
+      el.style.left = pos[0] + '%';
+      el.style.top = pos[1] + '%';
+      el.style.animationDelay = (i*0.06) + 's';
+      attachSortDrag(el, item.cat);
+      sortItems.appendChild(el);
+    });
+
+    say('ลากของไปใส่กล่อง ' + currentSet.a.label + ' หรือ ' + currentSet.b.label + ' ให้ถูกนะ!');
+  }
+
+  function attachSortDrag(el, correctCat){
+    var startX=0, startY=0, dragging=false;
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      el.style.transition = 'none';
+      el.classList.add('drag-active');
+      unlockAudio();
+    });
+    el.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      el.style.transform = 'translate(-50%,-50%) translate('+dx+'px,'+dy+'px) scale(1.15)';
+
+      var ca = basketCenter(basketA), cb = basketCenter(basketB);
+      basketA.classList.toggle('hover', dist(e.clientX,e.clientY,ca.x,ca.y) < 90);
+      basketB.classList.toggle('hover', dist(e.clientX,e.clientY,cb.x,cb.y) < 90);
+    });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      el.classList.remove('drag-active');
+      basketA.classList.remove('hover');
+      basketB.classList.remove('hover');
+
+      var ca = basketCenter(basketA), cb = basketCenter(basketB);
+      var dA = dist(e.clientX,e.clientY,ca.x,ca.y);
+      var dB = dist(e.clientX,e.clientY,cb.x,cb.y);
+      var droppedCat = null, target = null;
+      if(dA < 90 && dA <= dB){ droppedCat = 'a'; target = ca; }
+      else if(dB < 90){ droppedCat = 'b'; target = cb; }
+
+      if(droppedCat && droppedCat === correctCat){
+        el.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+        el.style.transform = 'translate(-50%,-50%) scale(.2)';
+        el.style.opacity = '0';
+        playPop();
+        starBurst(target.x, target.y);
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 200);
+        sortedCount++;
+        sortedCountEl.textContent = sortedCount;
+        if(sortedCount >= sortTotal){ setTimeout(winLevel, 450); }
+      }else if(droppedCat){
+        el.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1)';
+        el.style.transform = 'translate(-50%,-50%) scale(1)';
+        playBuzz();
+      }else{
+        el.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1)';
+        el.style.transform = 'translate(-50%,-50%) scale(1)';
+      }
+    }
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function(){
+    celebrate.classList.remove('show');
+    buildRound();
+  });
+
+  buildRound();
+})();
+</script>
+</body>
+</html>
